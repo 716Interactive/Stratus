@@ -1,0 +1,33 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/stratus.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/stratus.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Silence noisy Ktor/Netty internals at INFO; set to DEBUG when needed -->
+    <logger name="io.ktor" level="INFO"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+    <logger name="org.flywaydb" level="INFO"/>
+    <logger name="redis.clients" level="WARN"/>
+
+    <!-- Stratus application logs at DEBUG for full visibility -->
+    <logger name="com.slamstudios.stratus" level="DEBUG"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

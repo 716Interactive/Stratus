@@ -1,0 +1,205 @@
+package com.slamstudios.stratus.services
+
+import com.slamstudios.stratus.config.AppConfig
+import com.slamstudios.stratus.db.schema.ServerState
+import kotlinx.coroutines.*
+import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
+import java.util.*
+import java.util.concurrent.Executors
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class PteroTemplateConfig(
+    val memory: Int = 2048,
+    val disk: Int = 5120,
+    val cpu: Int = 0,
+    val startup: String = "java -jar server.jar",
+    val image: String = "ghcr.io/pterodactyl/yolks:java_17",
+    val env: Map<String, String> = emptyMap()
+)
+
+object OrchestratorService {
+    private val logger = LoggerFactory.getLogger(OrchestratorService::class.java)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var running = false
+    private lateinit var config: AppConfig
+
+    fun start(config: AppConfig) {
+        if (running) return
+        this.config = config
+        running = true
+        logger.info("Stratus Orchestrator starting…")
+
+        scope.launch {
+            while (running) {
+                try {
+                    watchdogLogic()
+                } catch (e: Exception) {
+                    logger.error("Error in watchdog loop", e)
+                }
+                delay(30_000)
+            }
+        }
+
+        scope.launch {
+            while (running) {
+                try {
+                    autoscaleLogic()
+                } catch (e: Exception) {
+                    logger.error("Error in autoscaling loop", e)
+                }
+                delay(15_000)
+            }
+        }
+        
+        logger.info("Stratus Orchestrator background loops started.")
+    }
+
+    private suspend fun watchdogLogic() {
+        val now = LocalDateTime.now()
+        val startingTimeout = now.minusMinutes(5)
+        val heartbeatTimeout = now.minusMinutes(2)
+
+        val stuck = ServerService.getStuckServers(startingTimeout, heartbeatTimeout)
+        if (stuck.isEmpty()) return
+
+        logger.warn("Watchdog found ${stuck.size} stuck server(s).")
+        for (server in stuck) {
+            logger.info("Watchdog terminating stuck server ${server.id} (state: ${server.state}, lastHeartbeat: ${server.lastHeartbeat})")
+            
+            if (server.pterodactylId != null) {
+                PterodactylService.deleteServer(server.pterodactylId)
+            }
+            ServerService.updateState(server.id, ServerState.TERMINATED)
+        }
+    }
+
+    private suspend fun autoscaleLogic() {
+        val groups = GroupService.getAll()
+        for (group in groups) {
+            val template = TemplateService.getById(group.templateId) ?: continue
+            val servers = ServerService.getAll(group.id)
+            val active = servers.filter { it.state in ServerState.ACTIVE }
+            val ready = servers.filter { it.state == ServerState.READY }
+            
+            if (active.size < group.minServers) {
+                val toCreate = group.minServers - active.size
+                logger.info("Group ${group.name} is below min_servers (${active.size}/${group.minServers}). Creating $toCreate server(s).")
+                repeat(toCreate) { provisionServer(group) }
+                continue
+            }
+
+            if (ready.size < group.targetFreeSlots && active.size < group.maxServers) {
+                val toCreate = (group.targetFreeSlots - ready.size).coerceAtMost(group.maxServers - active.size)
+                if (toCreate > 0) {
+                    logger.info("Group ${group.name} needs more free slots (${ready.size}/${group.targetFreeSlots}). Creating $toCreate server(s).")
+                    repeat(toCreate) { provisionServer(group) }
+                }
+            }
+
+            val empty = servers.filter { it.state == ServerState.EMPTY }
+            if (active.size > group.minServers && empty.isNotEmpty()) {
+                val cooldown = group.scaleDownCooldownSeconds
+                val now = LocalDateTime.now()
+
+                for (server in empty) {
+                    val changedAt = LocalDateTime.parse(server.stateChangedAt)
+                    val secondsEmpty = java.time.Duration.between(changedAt, now).seconds
+                    
+                    if (secondsEmpty >= cooldown) {
+                        logger.info("Group ${group.name} has excess EMPTY server ${server.id} (empty for ${secondsEmpty}s). Draining.")
+                        ServerService.updateState(server.id, ServerState.DRAINING)
+                        if (server.pterodactylId != null) {
+                            PterodactylService.deleteServer(server.pterodactylId)
+                        }
+                        ServerService.updateState(server.id, ServerState.TERMINATED)
+                    } else {
+                        logger.debug("Group ${group.name} has excess EMPTY server ${server.id}, but it is still in cooldown (${secondsEmpty}/${cooldown}s).")
+                    }
+                }
+            }
+
+            val currentVersionId = template.currentVersionId
+            if (currentVersionId != null) {
+                val outdated = active.filter { it.templateVersionId != currentVersionId }
+                for (server in outdated) {
+                    if (server.state == ServerState.READY || server.state == ServerState.EMPTY) {
+                        logger.info("Server ${server.id} is running outdated version. Marking for drainage.")
+                        ServerService.updateState(server.id, ServerState.DRAINING)
+                        if (server.pterodactylId != null) {
+                            PterodactylService.deleteServer(server.pterodactylId)
+                        }
+                        ServerService.updateState(server.id, ServerState.TERMINATED)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun provisionServer(group: ServerGroup) {
+        val template = TemplateService.getById(group.templateId) ?: return
+        val versionId = template.currentVersionId ?: return
+        val version = TemplateService.getVersions(group.templateId).find { it.id == versionId } ?: return
+        
+        val nodes = NodeService.getAll()
+        if (nodes.isEmpty()) {
+            logger.error("No nodes available to provision server for group ${group.name}")
+            return
+        }
+        
+        // Simple strategy: pick the first node
+        val node = nodes.first()
+        
+        // Parse config from version
+        val templateConfig = try {
+            Json { ignoreUnknownKeys = true }.decodeFromString<PteroTemplateConfig>(version.configJson ?: "{}")
+        } catch (e: Exception) {
+            logger.error("Failed to parse configJson for version ${version.id}, using defaults", e)
+            PteroTemplateConfig()
+        }
+
+        val internalId = UUID.randomUUID().toString()
+        val environment = mutableMapOf(
+            "STRATUS_URL" to config.pterodactyl.orchestratorUrl,
+            "STRATUS_TOKEN" to config.token,
+            "STRATUS_SERVER_ID" to internalId,
+            "STRATUS_GROUP" to group.name
+        )
+        // Add custom env from template
+        environment.putAll(templateConfig.env)
+
+        val pteroServer = PterodactylService.createServer(
+            name = "${group.name}-${internalId.take(8)}",
+            userId = config.pterodactyl.ownerId,
+            eggId = version.eggId,
+            nodeId = node.pterodactylId,
+            memoryMb = templateConfig.memory,
+            diskMb = templateConfig.disk,
+            startup = templateConfig.startup,
+            image = templateConfig.image,
+            environment = environment
+        )
+
+        if (pteroServer != null) {
+            ServerService.createWithId(
+                id = internalId,
+                pteroId = pteroServer.id,
+                nodeId = node.id,
+                groupId = group.id,
+                templateVersionId = version.id,
+                host = pteroServer.host ?: "127.0.0.1",
+                port = pteroServer.port ?: 25565
+            )
+        } else {
+            logger.error("Failed to provision Pterodactyl server for group ${group.name}")
+        }
+    }
+
+    fun stop() {
+        running = false
+        scope.cancel()
+        logger.info("Stratus Orchestrator stopped.")
+    }
+}

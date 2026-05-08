@@ -1,0 +1,18 @@
+package com.slamstudios.stratus.db.schema
+
+import org.jetbrains.exposed.sql.Table
+
+/** Maps to the `server_groups` table. */
+object ServerGroups : Table("server_groups") {
+    val id                       = char("id", 36)
+    val name                     = varchar("name", 100)
+    val templateId               = char("template_id", 36).references(Templates.id)
+    val minServers               = integer("min_servers")
+    val maxServers               = integer("max_servers")
+    val targetFreeSlots          = integer("target_free_slots")
+    val scaleDownCooldownSeconds = integer("scale_down_cooldown_seconds")
+    /** Optional JSON metadata (game type, map, etc.) stored as text. */
+    val metadata                 = text("metadata").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+}
