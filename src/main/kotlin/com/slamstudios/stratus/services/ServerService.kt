@@ -22,6 +22,7 @@ data class ManagedServer(
     val port: Int,
     val state: ServerState,
     val players: Int,
+    val autoProxyAdd: Boolean,
     val metadata: String?,
     val lastHeartbeat: String?,
     val stateChangedAt: String,
@@ -94,7 +95,9 @@ object ServerService {
         
         if (newState == ServerState.READY) {
             val s = current.toManagedServer()
-            RedisService.publish("stratus:server:ready", "{\"serverId\":\"$id\", \"groupId\":\"${s.groupId}\", \"host\":\"${s.host}\", \"port\":${s.port}}")
+            if (s.autoProxyAdd) {
+                RedisService.publish("stratus:server:ready", "{\"serverId\":\"$id\", \"groupId\":\"${s.groupId}\", \"host\":\"${s.host}\", \"port\":${s.port}}")
+            }
         } else if (newState == ServerState.TERMINATED) {
             val s = current.toManagedServer()
             RedisService.publish("stratus:server:removed", "{\"serverId\":\"$id\", \"groupId\":\"${s.groupId}\"}")
@@ -162,6 +165,7 @@ object ServerService {
         port = this[Servers.port],
         state = ServerState.fromString(this[Servers.state]),
         players = this[Servers.players],
+        autoProxyAdd = this[Servers.autoProxyAdd],
         metadata = this[Servers.metadata],
         lastHeartbeat = this[Servers.lastHeartbeat]?.toString(),
         stateChangedAt = this[Servers.stateChangedAt].toString(),

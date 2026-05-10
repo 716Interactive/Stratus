@@ -11,6 +11,7 @@ object ServerGroups : Table("server_groups") {
     val maxServers               = integer("max_servers")
     val targetFreeSlots          = integer("target_free_slots")
     val scaleDownCooldownSeconds = integer("scale_down_cooldown_seconds")
+    val autoProxyAdd             = bool("auto_proxy_add").default(true)
     /** Optional JSON metadata (game type, map, etc.) stored as text. */
     val metadata                 = text("metadata").nullable()
 

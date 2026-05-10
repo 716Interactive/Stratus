@@ -6,6 +6,7 @@ import com.slamstudios.stratus.routes.groupRoutes
 import com.slamstudios.stratus.routes.healthRoutes
 import com.slamstudios.stratus.routes.serverRoutes
 import com.slamstudios.stratus.routes.templateRoutes
+import com.slamstudios.stratus.routes.proxyRoutes
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.routing.*
@@ -35,6 +36,7 @@ fun Application.configureRouting(config: AppConfig) {
             allocateRoutes()
             groupRoutes()
             templateRoutes()
+            proxyRoutes()
         }
     }
 }

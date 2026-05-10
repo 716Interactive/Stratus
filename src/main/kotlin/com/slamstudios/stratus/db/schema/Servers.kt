@@ -46,6 +46,7 @@ object Servers : Table("servers") {
     /** Stored as VARCHAR matching the ENUM values defined in SQL. */
     val state             = varchar("state", 20)
     val players           = integer("players")
+    val autoProxyAdd      = bool("auto_proxy_add").default(true)
     val metadata          = text("metadata").nullable()
     val lastHeartbeat     = datetime("last_heartbeat").nullable()
     val stateChangedAt    = datetime("state_changed_at")
