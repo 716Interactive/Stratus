@@ -253,4 +253,9 @@ Route::group(['prefix' => 'stratus'], function () {
         Route::get('/view/{template}', [Admin\Stratus\TemplateController::class, 'view'])->name('admin.stratus.templates.view');
         Route::post('/view/{template}/versions', [Admin\Stratus\TemplateController::class, 'storeVersion']);
     });
+
+    Route::group(['prefix' => 'proxies'], function () {
+        Route::get('/', [Admin\Stratus\ProxyController::class, 'index'])->name('admin.stratus.proxies');
+        Route::post('/new', [Admin\Stratus\ProxyController::class, 'create'])->name('admin.stratus.proxies.create');
+    });
 });

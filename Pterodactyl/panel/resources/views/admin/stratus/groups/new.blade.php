@@ -64,6 +64,14 @@
                         <label for="scaleDownCooldownSeconds" class="control-label">Scale Down Cooldown (Seconds)</label>
                         <input type="number" name="scaleDownCooldownSeconds" id="scaleDownCooldownSeconds" class="form-control" value="300" />
                     </div>
+                    <hr>
+                    <div class="form-group">
+                        <div class="checkbox checkbox-primary">
+                            <input id="auto_proxy_add" name="auto_proxy_add" type="checkbox" checked>
+                            <label for="auto_proxy_add">Auto Proxy Registration</label>
+                        </div>
+                        <p class="text-muted small">When enabled, servers in this group will automatically be added to the Main Proxy when they reach <code>READY</code> state.</p>
+                    </div>
                 </div>
                 <div class="box-footer">
                     <button type="submit" class="btn btn-success pull-right">Create Group</button>

@@ -24,6 +24,9 @@ class EventServiceProvider extends ServiceProvider
      */
     protected $listen = [
         ServerInstalledEvent::class => [ServerInstalledNotification::class],
+        \Pterodactyl\Events\Server\Created::class => [
+            \Pterodactyl\Listeners\Stratus\AutoInstallPluginListener::class,
+        ],
     ];
 
     protected $subscribe = [

@@ -67,6 +67,21 @@ class StratusApiService
         return $this->put('/groups/' . $id, $data);
     }
 
+    public function getProxies()
+    {
+        return $this->get('/proxies');
+    }
+
+    public function getMainProxy()
+    {
+        return $this->get('/proxies/main');
+    }
+
+    public function createProxy(array $data)
+    {
+        return $this->post('/proxies', $data);
+    }
+
     public function getHealth()
     {
         return $this->get('/health');
