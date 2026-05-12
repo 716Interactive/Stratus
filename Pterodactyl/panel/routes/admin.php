@@ -258,4 +258,10 @@ Route::group(['prefix' => 'stratus'], function () {
         Route::get('/', [Admin\Stratus\ProxyController::class, 'index'])->name('admin.stratus.proxies');
         Route::post('/new', [Admin\Stratus\ProxyController::class, 'create'])->name('admin.stratus.proxies.create');
     });
+
+    Route::group(['prefix' => 'backups'], function () {
+        Route::get('/setup', [Admin\Stratus\BackupController::class, 'setup'])->name('admin.stratus.backups.setup');
+        Route::get('/redirect', [Admin\Stratus\BackupController::class, 'redirect'])->name('admin.stratus.backups.redirect');
+        Route::get('/callback', [Admin\Stratus\BackupController::class, 'callback'])->name('admin.stratus.backups.callback');
+    });
 });

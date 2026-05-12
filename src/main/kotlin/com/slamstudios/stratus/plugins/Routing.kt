@@ -9,6 +9,8 @@ import com.slamstudios.stratus.routes.templateRoutes
 import com.slamstudios.stratus.routes.proxyRoutes
 import com.slamstudios.stratus.routes.auditRoutes
 import com.slamstudios.stratus.routes.nodeRoutes
+import com.slamstudios.stratus.routes.backupRoutes
+import com.slamstudios.stratus.routes.templateFileRoutes
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.routing.*
@@ -41,6 +43,8 @@ fun Application.configureRouting(config: AppConfig) {
             proxyRoutes()
             auditRoutes()
             nodeRoutes()
+            backupRoutes()
+            templateFileRoutes()
         }
     }
 }

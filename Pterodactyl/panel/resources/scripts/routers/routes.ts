@@ -40,6 +40,8 @@ interface Routes {
     account: RouteDefinition[];
     // All of the routes available under "/server/:id"
     server: ServerRouteDefinition[];
+    // All of the routes available under "/stratus"
+    stratus: RouteDefinition[];
 }
 
 export default {
@@ -139,6 +141,25 @@ export default {
             permission: 'activity.*',
             name: 'Activity',
             component: ServerActivityLogContainer,
+        },
+    ],
+    stratus: [
+        {
+            path: '/groups',
+            name: 'Groups',
+            component: lazy(() => import('@/components/stratus/GroupContainer')),
+            exact: true,
+        },
+        {
+            path: '/templates',
+            name: 'Templates',
+            component: lazy(() => import('@/components/stratus/TemplateContainer')),
+            exact: true,
+        },
+        {
+            path: '/templates/:id/files',
+            name: 'Files',
+            component: FileManagerContainer,
         },
     ],
 } as Routes;
