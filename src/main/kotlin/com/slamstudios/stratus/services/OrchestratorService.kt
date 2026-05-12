@@ -43,18 +43,30 @@ object OrchestratorService {
             }
         }
 
+        startAutoscaler()
+        
+        logger.info("Stratus Orchestrator background loops started.")
+    }
+
+    private fun startAutoscaler() {
         scope.launch {
             while (running) {
                 try {
                     autoscaleLogic()
+                    
+                    // Also check for backups
+                    val config = BackupService.getConfig()
+                    if (config?.lastBackupAt == null || LocalDateTime.parse(config.lastBackupAt).plusMinutes(config.backupIntervalMinutes.toLong()).isBefore(LocalDateTime.now())) {
+                        BackupService.performBackup()
+                    }
+
                 } catch (e: Exception) {
-                    logger.error("Error in autoscaling loop", e)
+                    logger.error("Error in autoscaler loop: ${e.message}")
+                    // AuditService.error("SYSTEM", "Autoscaler loop crash: ${e.message}")
                 }
-                delay(15_000)
+                delay(30_000)
             }
         }
-        
-        logger.info("Stratus Orchestrator background loops started.")
     }
 
     private suspend fun watchdogLogic() {
@@ -138,26 +150,53 @@ object OrchestratorService {
         }
     }
 
+    private fun findAvailableNode(requiredMemory: Int, requiredDisk: Int, preferredNodeId: String? = null, strategy: String = "SPREAD"): Node? {
+        val nodes = NodeService.getAll()
+        
+        // 1. Check preferred node first if specified
+        if (preferredNodeId != null) {
+            val preferred = nodes.find { it.id == preferredNodeId }
+            if (preferred != null && preferred.canFit(requiredMemory, requiredDisk)) {
+                return preferred
+            }
+        }
+
+        // 2. Filter nodes that can fit the requirements
+        val candidateNodes = nodes.filter { it.canFit(requiredMemory, requiredDisk) }
+        
+        if (candidateNodes.isEmpty()) return null
+
+        // 3. Apply scheduling strategy
+        return when (strategy.uppercase()) {
+            "BIN_PACKING" -> {
+                // Pick node with LEAST available memory to "fill" it up
+                candidateNodes.minByOrNull { it.totalMemory - it.currentMemory }
+            }
+            "SPREAD" -> {
+                // Pick node with MOST available memory to balance load
+                candidateNodes.maxByOrNull { it.totalMemory - it.currentMemory }
+            }
+            else -> candidateNodes.random()
+        }
+    }
+
     private suspend fun provisionServer(group: ServerGroup) {
         val template = TemplateService.getById(group.templateId) ?: return
         val versionId = template.currentVersionId ?: return
         val version = TemplateService.getVersions(group.templateId).find { it.id == versionId } ?: return
-        
-        val nodes = NodeService.getAll()
-        if (nodes.isEmpty()) {
-            logger.error("No nodes available to provision server for group ${group.name}")
-            return
-        }
-        
-        // Simple strategy: pick the first node
-        val node = nodes.first()
-        
+
         // Parse config from version
         val templateConfig = try {
             Json { ignoreUnknownKeys = true }.decodeFromString<PteroTemplateConfig>(version.configJson ?: "{}")
         } catch (e: Exception) {
             logger.error("Failed to parse configJson for version ${version.id}, using defaults", e)
             PteroTemplateConfig()
+        }
+
+        val node = findAvailableNode(templateConfig.memory, templateConfig.disk, group.preferredNodeId, group.schedulingStrategy)
+        if (node == null) {
+            logger.error("No nodes available for group ${group.name} (Requires ${templateConfig.memory}MB RAM)")
+            return
         }
 
         val internalId = UUID.randomUUID().toString()

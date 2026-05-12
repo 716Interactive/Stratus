@@ -14,7 +14,8 @@ import java.util.*
 data class Template(
     val id: String,
     val name: String,
-    val currentVersionId: String?
+    val currentVersionId: String?,
+    val localPath: String
 )
 
 @Serializable
@@ -48,8 +49,9 @@ object TemplateService {
         Templates.insert {
             it[Templates.id] = id
             it[Templates.name] = name
+            it[Templates.localPath] = "/var/lib/pterodactyl/templates"
         }
-        Template(id, name, null)
+        Template(id, name, null, "/var/lib/pterodactyl/templates")
     }
 
     fun createVersion(templateId: String, eggId: Int, configJson: String): TemplateVersion = transaction {
@@ -81,7 +83,8 @@ object TemplateService {
     private fun ResultRow.toTemplate() = Template(
         id = this[Templates.id],
         name = this[Templates.name],
-        currentVersionId = this[Templates.currentVersionId]
+        currentVersionId = this[Templates.currentVersionId],
+        localPath = this[Templates.localPath]
     )
 
     private fun ResultRow.toTemplateVersion() = TemplateVersion(

@@ -1,11 +1,11 @@
 @extends('layouts.admin')
 
 @section('title')
-    Stratus Live Monitor
+    Stratus Orchestrator
 @endsection
 
 @section('content-header')
-    <h1>Stratus Orchestrator<small>Real-time network monitoring.</small></h1>
+    <h1>Stratus Orchestrator<small>Central management for network scaling and automation.</small></h1>
     <ol class="breadcrumb">
         <li><a href="{{ route('admin.index') }}">Admin</a></li>
         <li class="active">Stratus</li>
@@ -15,80 +15,112 @@
 @section('content')
 <div class="row">
     <div class="col-md-3">
-        <div class="info-box {{ $health['status'] === 'ok' ? 'bg-green' : 'bg-red' }}">
-            <span class="info-box-icon"><i class="fa fa-heartbeat"></i></span>
+        <div class="info-box">
+            <span class="info-box-icon bg-blue"><i class="fa fa-server"></i></span>
             <div class="info-box-content">
-                <span class="info-box-text">Orchestrator Status</span>
-                <span class="info-box-number">{{ strtoupper($health['status'] ?? 'UNKNOWN') }}</span>
-                <div class="progress">
-                    <div class="progress-bar" style="width: 100%"></div>
-                </div>
-                <span class="progress-description">Version: {{ $health['version'] ?? 'N/A' }}</span>
+                <span class="info-box-text">Total Servers</span>
+                <span class="info-box-number">{{ count($servers) }}</span>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="info-box bg-aqua">
-            <span class="info-box-icon"><i class="fa fa-server"></i></span>
+        <div class="info-box">
+            <span class="info-box-icon bg-green"><i class="fa fa-cubes"></i></span>
             <div class="info-box-content">
-                <span class="info-box-text">Managed Servers</span>
-                <span class="info-box-number">{{ count($servers) }}</span>
-                <div class="progress">
-                    <div class="progress-bar" style="width: 100%"></div>
-                </div>
-                <span class="progress-description">Across {{ count($groups) }} groups</span>
+                <span class="info-box-text">Active Groups</span>
+                <span class="info-box-number">{{ count($groups) }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="info-box">
+            <span class="info-box-icon bg-yellow"><i class="fa fa-file-code-o"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Templates</span>
+                <span class="info-box-number">{{ count($templates) }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="info-box">
+            <span class="info-box-icon bg-red"><i class="fa fa-shield"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Proxies</span>
+                <span class="info-box-number">{{ count($proxies) }}</span>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-xs-12">
+    <div class="col-md-8">
         <div class="box box-primary">
             <div class="box-header with-border">
-                <h3 class="box-title">Active Managed Servers</h3>
+                <h3 class="box-title">Recent Scaling Audit Logs</h3>
             </div>
             <div class="box-body table-responsive no-padding">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Group</th>
-                            <th>Node</th>
-                            <th>Connection</th>
-                            <th>State</th>
-                            <th>Players</th>
-                            <th>Last Heartbeat</th>
-                            <th></th>
+                            <th>Level</th>
+                            <th>Category</th>
+                            <th>Message</th>
+                            <th>Time</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($servers as $server)
+                        @foreach($auditLogs as $log)
                             <tr>
-                                <td><code>{{ $server['id'] }}</code></td>
-                                <td><span class="label label-default">{{ $server['groupId'] }}</span></td>
-                                <td>{{ $server['nodeId'] }}</td>
-                                <td><code>{{ $server['host'] }}:{{ $server['port'] }}</code></td>
                                 <td>
-                                    @switch($server['state'])
-                                        @case('READY') <span class="label label-success">READY</span> @break
-                                        @case('STARTING') <span class="label label-warning">STARTING</span> @break
-                                        @case('IN_GAME') <span class="label label-info">IN_GAME</span> @break
-                                        @case('TERMINATED') <span class="label label-danger">TERMINATED</span> @break
-                                        @default <span class="label label-default">{{ $server['state'] }}</span>
-                                    @endswitch
-                                </td>
-                                <td>{{ $server['players'] }}</td>
-                                <td>{{ \Carbon\Carbon::parse($server['lastHeartbeat'])->diffForHumans() }}</td>
-                                <td>
-                                    @if($server['pterodactylId'])
-                                        <a href="{{ route('admin.servers.view', $server['pterodactylId']) }}" class="btn btn-xs btn-default"><i class="fa fa-external-link"></i> View Ptero</a>
+                                    @if($log['level'] === 'ERROR')
+                                        <span class="label label-danger">ERROR</span>
+                                    @elseif($log['level'] === 'WARNING')
+                                        <span class="label label-warning">WARN</span>
+                                    @else
+                                        <span class="label label-info">{{ $log['level'] }}</span>
                                     @endif
                                 </td>
+                                <td><code>{{ $log['category'] }}</code></td>
+                                <td>{{ $log['message'] }}</td>
+                                <td>{{ \Carbon\Carbon::parse($log['createdAt'])->diffForHumans() }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="box box-solid box-primary">
+            <div class="box-header with-border">
+                <h3 class="box-title">Quick Actions</h3>
+            </div>
+            <div class="box-body">
+                <a href="{{ route('admin.stratus.groups.new') }}" class="btn btn-block btn-social btn-success">
+                    <i class="fa fa-plus"></i> Create New Server Group
+                </a>
+                <a href="{{ route('admin.stratus.templates.new') }}" class="btn btn-block btn-social btn-primary">
+                    <i class="fa fa-code-fork"></i> Create New Template
+                </a>
+                <a href="{{ route('admin.stratus.proxies') }}" class="btn btn-block btn-social btn-warning">
+                    <i class="fa fa-random"></i> Manage Proxy Network
+                </a>
+            </div>
+        </div>
+        
+        <div class="box box-solid box-info">
+            <div class="box-header with-border">
+                <h3 class="box-title">Google Drive Backup</h3>
+            </div>
+            <div class="box-body">
+                @if($driveConfig && $driveConfig['accessToken'])
+                    <p class="text-success"><i class="fa fa-check-circle"></i> Connected to Google Drive</p>
+                    <p class="small text-muted">Last Backup: {{ $driveConfig['lastBackupAt'] ?? 'Never' }}</p>
+                    <button class="btn btn-xs btn-default btn-block">Trigger Manual Backup</button>
+                @else
+                    <p class="text-warning"><i class="fa fa-exclamation-triangle"></i> Not Connected</p>
+                    <a href="{{ route('admin.stratus.backups.setup') }}" class="btn btn-sm btn-info btn-block">Connect Google Account</a>
+                @endif
             </div>
         </div>
     </div>

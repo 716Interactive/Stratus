@@ -64,6 +64,22 @@
                         <label for="scaleDownCooldownSeconds" class="control-label">Scale Down Cooldown (Seconds)</label>
                         <input type="number" name="scaleDownCooldownSeconds" id="scaleDownCooldownSeconds" class="form-control" value="300" />
                     </div>
+                    <div class="form-group">
+                        <label for="preferredNodeId" class="control-label">Preferred Node (Optional)</label>
+                        <select name="preferredNodeId" id="preferredNodeId" class="form-control">
+                            <option value="">-- Automatic (Best Fit) --</option>
+                            @foreach($nodes as $node)
+                                <option value="{{ $node['id'] }}">{{ $node['name'] }} ({{ $node['id'] }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedulingStrategy" class="control-label">Scheduling Strategy</label>
+                        <select name="schedulingStrategy" id="schedulingStrategy" class="form-control">
+                            <option value="SPREAD">Spread (Balance load across nodes)</option>
+                            <option value="BIN_PACKING">Bin-Packing (Maximize node usage)</option>
+                        </select>
+                    </div>
                     <hr>
                     <div class="form-group">
                         <div class="checkbox checkbox-primary">

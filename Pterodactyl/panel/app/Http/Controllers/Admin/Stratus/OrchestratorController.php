@@ -18,13 +18,21 @@ class OrchestratorController extends Controller
     public function index()
     {
         $health = $this->api->getHealth();
-        $servers = $this->api->getServers();
-        $groups = $this->api->getGroups();
+        $servers = $this->api->getServers() ?? [];
+        $groups = $this->api->getGroups() ?? [];
+        $templates = $this->api->getTemplates() ?? [];
+        $proxies = $this->api->getProxies() ?? [];
+        $auditLogs = $this->api->get('/audit') ?? [];
+        $driveConfig = $this->api->get('/backups/config');
 
         return view('admin.stratus.index', [
             'health' => $health,
             'servers' => $servers,
             'groups' => $groups,
+            'templates' => $templates,
+            'proxies' => $proxies,
+            'auditLogs' => $auditLogs,
+            'driveConfig' => $driveConfig,
         ]);
     }
 }

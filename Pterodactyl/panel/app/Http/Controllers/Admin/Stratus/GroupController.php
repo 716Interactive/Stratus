@@ -40,7 +40,11 @@ class GroupController extends Controller
     public function create()
     {
         $templates = $this->api->getTemplates();
-        return view('admin.stratus.groups.new', ['templates' => $templates]);
+        $nodes = $this->api->get('/nodes'); // We need an endpoint for this
+        return view('admin.stratus.groups.new', [
+            'templates' => $templates,
+            'nodes' => $nodes,
+        ]);
     }
 
     public function store(Request $request)

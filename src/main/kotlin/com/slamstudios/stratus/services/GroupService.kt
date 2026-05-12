@@ -20,6 +20,8 @@ data class ServerGroup(
     val maxServers: Int,
     val targetFreeSlots: Int,
     val scaleDownCooldownSeconds: Int,
+    val preferredNodeId: String?,
+    val schedulingStrategy: String,
     val metadata: String?
 )
 
@@ -101,9 +103,11 @@ object GroupService {
             it[ServerGroups.maxServers] = max
             it[ServerGroups.targetFreeSlots] = target
             it[ServerGroups.scaleDownCooldownSeconds] = cooldown
+            it[ServerGroups.preferredNodeId] = null
+            it[ServerGroups.schedulingStrategy] = "SPREAD"
             it[ServerGroups.metadata] = metadata
         }
-        ServerGroup(id, name, templateId, min, max, target, cooldown, metadata)
+        ServerGroup(id, name, templateId, min, max, target, cooldown, null, "SPREAD", metadata)
     }
 
     fun update(
@@ -137,6 +141,8 @@ object GroupService {
         maxServers = this[ServerGroups.maxServers],
         targetFreeSlots = this[ServerGroups.targetFreeSlots],
         scaleDownCooldownSeconds = this[ServerGroups.scaleDownCooldownSeconds],
+        preferredNodeId = this[ServerGroups.preferredNodeId],
+        schedulingStrategy = this[ServerGroups.schedulingStrategy],
         metadata = this[ServerGroups.metadata]
     )
 
