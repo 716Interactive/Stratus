@@ -43,16 +43,35 @@ echo -e "\n${COLOR_BLUE}--- Copying Stratus Files ---${COLOR_NC}"
 # Ensure directories exist
 mkdir -p "$PANEL_PATH/app/Services/Stratus"
 mkdir -p "$PANEL_PATH/app/Http/Controllers/Admin/Stratus"
+mkdir -p "$PANEL_PATH/app/Listeners/Stratus"
 mkdir -p "$PANEL_PATH/resources/views/admin/stratus/groups"
 mkdir -p "$PANEL_PATH/resources/views/admin/stratus/templates"
+mkdir -p "$PANEL_PATH/resources/views/admin/stratus/proxies"
+mkdir -p "$PANEL_PATH/storage/app/stratus"
 
-# Copy files from the repo to the panel (Assumes script is run from repo root)
+# Copy files from the repo to the panel
 cp -rv Pterodactyl/panel/app/Services/Stratus/* "$PANEL_PATH/app/Services/Stratus/"
 cp -rv Pterodactyl/panel/app/Http/Controllers/Admin/Stratus/* "$PANEL_PATH/app/Http/Controllers/Admin/Stratus/"
+cp -rv Pterodactyl/panel/app/Listeners/Stratus/* "$PANEL_PATH/app/Listeners/Stratus/"
 cp -v Pterodactyl/panel/config/stratus.php "$PANEL_PATH/config/"
 cp -rv Pterodactyl/panel/resources/views/admin/stratus/* "$PANEL_PATH/resources/views/admin/stratus/"
+cp -rv Pterodactyl/panel/resources/scripts/* "$PANEL_PATH/resources/scripts/"
+cp -v Pterodactyl/panel/app/Providers/EventServiceProvider.php "$PANEL_PATH/app/Providers/"
+cp -v Pterodactyl/panel/routes/admin.php "$PANEL_PATH/routes/"
 
 echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
+
+# 3.1 Build Orchestrator and Plugins
+echo -e "\n${COLOR_BLUE}--- Building Stratus Components ---${COLOR_NC}"
+if command -v ./gradlew &> /dev/null; then
+    ./gradlew build
+    cp -v build/libs/stratus-all.jar ./stratus-orchestrator.jar
+    # Copy plugin to panel storage for auto-install
+    cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPlugin.jar"
+    echo -e "${COLOR_GREEN}✔ Components built and placed.${COLOR_NC}"
+else
+    echo -e "${COLOR_RED}Warning: gradlew not found. Skipping build. Make sure you have built the JARs manually.${COLOR_NC}"
+fi
 
 # 4. Updating .env
 echo -e "\n${COLOR_BLUE}--- Updating Environment Variables ---${COLOR_NC}"
@@ -71,48 +90,23 @@ fi
 
 echo -e "${COLOR_GREEN}✔ .env updated.${COLOR_NC}"
 
-# 5. Route Integration (Manual check)
-echo -e "\n${COLOR_BLUE}--- Patching Routes ---${COLOR_NC}"
-if grep -q "Stratus Routes" "$PANEL_PATH/routes/admin.php"; then
-    echo "Routes already patched."
-else
-    cat <<EOT >> "$PANEL_PATH/routes/admin.php"
-
-/*
-|--------------------------------------------------------------------------
-| Stratus Routes
-|--------------------------------------------------------------------------
-*/
-use Pterodactyl\Http\Controllers\Admin\Stratus;
-Route::group(['prefix' => 'stratus'], function () {
-    Route::get('/', [Stratus\OrchestratorController::class, 'index'])->name('admin.stratus.orchestrator');
-    
-    Route::group(['prefix' => 'groups'], function () {
-        Route::get('/', [Stratus\GroupController::class, 'index'])->name('admin.stratus.groups');
-        Route::get('/new', [Stratus\GroupController::class, 'create'])->name('admin.stratus.groups.new');
-        Route::post('/new', [Stratus\GroupController::class, 'store']);
-        Route::get('/view/{group}', [Stratus\GroupController::class, 'view'])->name('admin.stratus.groups.view');
-        Route::post('/view/{group}', [Stratus\GroupController::class, 'update']);
-    });
-
-    Route::group(['prefix' => 'templates'], function () {
-        Route::get('/', [Stratus\TemplateController::class, 'index'])->name('admin.stratus.templates');
-        Route::get('/new', [Stratus\TemplateController::class, 'create'])->name('admin.stratus.templates.new');
-        Route::post('/new', [Stratus\TemplateController::class, 'store']);
-        Route::get('/view/{template}', [Stratus\TemplateController::class, 'view'])->name('admin.stratus.templates.view');
-        Route::post('/view/{template}/versions', [Stratus\TemplateController::class, 'storeVersion']);
-    });
-});
-EOT
-    echo -e "${COLOR_GREEN}✔ Routes patched.${COLOR_NC}"
+# 5. Client-side Assets (React)
+echo -e "\n${COLOR_BLUE}--- Building Client Assets ---${COLOR_NC}"
+cd "$PANEL_PATH"
+if [ -f "package.json" ]; then
+    yarn build:production || npm run build:production
+    echo -e "${COLOR_GREEN}✔ Client assets built.${COLOR_NC}"
 fi
 
 # 6. Finalizing
 echo -e "\n${COLOR_BLUE}--- Finalizing ---${COLOR_NC}"
-cd "$PANEL_PATH"
 php artisan view:clear
 php artisan config:clear
 chown -R www-data:www-data "$PANEL_PATH"
+chown -R www-data:www-data "$PANEL_PATH/storage/app/stratus"
 
-echo -e "\n${COLOR_GREEN}Stratus Panel Integration Complete!${COLOR_NC}"
-echo "You can now find the Stratus tab in your Pterodactyl Admin sidebar."
+echo -e "\n${COLOR_GREEN}Stratus Full-Stack Installation Complete!${COLOR_NC}"
+echo "1. The Orchestrator is ready to run (java -jar stratus-orchestrator.jar)."
+echo "2. The Panel is integrated with Groups, Templates, Proxies, and Backups."
+echo "3. Auto-installation of plugins is enabled for new servers."
+
