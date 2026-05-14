@@ -30,6 +30,11 @@ else
     git pull
 fi
 
+# 2. Rebuild the project
+echo -e "\n${COLOR_BLUE}--- Rebuilding Stratus Project ---${COLOR_NC}"
+chmod +x gradlew
+./gradlew shadowJar :stratus-plugin:build -x test --no-build-cache
+
 # 3. Handle Migration and Deployment
 if [ ! -d "/opt/stratus" ]; then
     echo -e "\n${COLOR_BLUE}--- Migrating to Professional Structure ---${COLOR_NC}"

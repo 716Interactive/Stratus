@@ -17,6 +17,7 @@ import org.slf4j.event.Level
 fun main(args: Array<String>) = EngineMain.main(args)
 
 fun Application.module() {
+    println("[Stratus] --- Starting Stratus Orchestrator v1.0.1 ---")
     val config = AppConfig.load(environment.config)
 
     // ── Plugins ──────────────────────────────────────────────────────────────
