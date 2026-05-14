@@ -20,13 +20,26 @@ data class AppConfig(
 ) {
     companion object {
         fun load(config: ApplicationConfig): AppConfig {
+            val log = org.slf4j.LoggerFactory.getLogger(AppConfig::class.java)
+            
             val yamlFile = listOf(
                 File("/etc/stratus/config.yml"),
                 File("config.yml")
             ).firstOrNull { it.exists() }
 
+            if (yamlFile != null) {
+                log.info("Loading configuration from: ${yamlFile.absolutePath}")
+            } else {
+                log.warn("No YAML configuration file found! Using defaults and environment variables.")
+            }
+
             val yamlData = if (yamlFile != null) {
-                Yaml().load<Map<String, Any>>(FileInputStream(yamlFile))
+                try {
+                    Yaml().load<Map<String, Any>>(FileInputStream(yamlFile)) ?: emptyMap()
+                } catch (e: Exception) {
+                    log.error("Failed to parse YAML configuration: ${e.message}")
+                    emptyMap()
+                }
             } else {
                 emptyMap()
             }
