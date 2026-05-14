@@ -29,7 +29,7 @@ echo -e "${COLOR_GREEN}✔ Pterodactyl installation detected.${COLOR_NC}"
 
 # 2. Configuration
 echo -e "\n${COLOR_BLUE}--- Configuration ---${COLOR_NC}"
-read -p "Enter Stratus Orchestrator URL (e.g., http://1.2.3.4:8080): " STRATUS_URL
+read -p "Enter Stratus Orchestrator URL (e.g., http://1.2.3.4:8081): " STRATUS_URL
 read -p "Enter Stratus API Token: " STRATUS_TOKEN
 
 if [ -z "$STRATUS_URL" ] || [ -z "$STRATUS_TOKEN" ]; then
@@ -63,11 +63,14 @@ echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
 
 # 3.1 Build Orchestrator and Plugins
 echo -e "\n${COLOR_BLUE}--- Building Stratus Components ---${COLOR_NC}"
-if command -v ./gradlew &> /dev/null; then
-    ./gradlew build
-    cp -v build/libs/stratus-all.jar ./stratus-orchestrator.jar
+if [ -f "./gradlew" ]; then
+    chmod +x ./gradlew
+    ./gradlew shadowJar :stratus-plugin:build -x test
+    cp -v build/libs/stratus-orchestrator-all.jar ./stratus-orchestrator.jar
     # Copy plugin to panel storage for auto-install
-    cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPlugin.jar"
+    cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
+    cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar"
+    cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar"
     echo -e "${COLOR_GREEN}✔ Components built and placed.${COLOR_NC}"
 else
     echo -e "${COLOR_RED}Warning: gradlew not found. Skipping build. Make sure you have built the JARs manually.${COLOR_NC}"

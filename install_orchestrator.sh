@@ -105,8 +105,26 @@ read -p "Would you like to install the systemd service? (y/n) [n]: " INSTALL_SER
 INSTALL_SERVICE=${INSTALL_SERVICE:-n}
 
 if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
+    echo -e "${COLOR_BLUE}Deploying to system directories... (requires sudo)${COLOR_NC}"
+    
+    # 1. Create Directories
+    sudo mkdir -p /opt/stratus
+    sudo mkdir -p /etc/stratus
+    sudo mkdir -p /var/log/stratus
+    
+    # 2. Copy Files
+    if [ -f "build/libs/stratus-orchestrator-all.jar" ]; then
+        sudo cp -v build/libs/stratus-orchestrator-all.jar /opt/stratus/
+    fi
+    sudo cp -v config.yml /etc/stratus/config.yml
+    
+    # 3. Fix Permissions
     CUR_USER=$(whoami)
-    CUR_DIR=$(pwd)
+    sudo chown -R $CUR_USER:$CUR_USER /opt/stratus
+    sudo chown -R $CUR_USER:$CUR_USER /etc/stratus
+    sudo chown -R $CUR_USER:$CUR_USER /var/log/stratus
+
+    # 4. Generate Service
     JAVA_PATH=$(which java)
 
     cat <<EOT > stratus.service
@@ -116,8 +134,9 @@ After=network.target mysql.service redis.service
 
 [Service]
 User=$CUR_USER
-WorkingDirectory=$CUR_DIR
-ExecStart=$JAVA_PATH -jar build/libs/stratus-orchestrator-all.jar
+WorkingDirectory=/opt/stratus
+Environment="STRATUS_LOG_DIR=/var/log/stratus"
+ExecStart=$JAVA_PATH -jar /opt/stratus/stratus-orchestrator-all.jar
 Restart=always
 RestartSec=5
 
@@ -125,12 +144,13 @@ RestartSec=5
 WantedBy=multi-user.target
 EOT
 
-    echo -e "${COLOR_BLUE}Installing service... (requires sudo)${COLOR_NC}"
     sudo mv stratus.service /etc/systemd/system/stratus.service
     sudo systemctl daemon-reload
     sudo systemctl enable stratus
     echo -e "${COLOR_GREEN}✔ Service installed and enabled.${COLOR_NC}"
     echo "You can start it using: sudo systemctl start stratus"
+    echo "Logs are available at: /var/log/stratus/stratus.log"
+    echo "Config is available at: /etc/stratus/config.yml"
 else
     echo "Service installation skipped."
 fi
@@ -140,6 +160,7 @@ echo -e "\n${COLOR_GREEN}Setup Complete!${COLOR_NC}"
 echo "You can now start the orchestrator using:"
 if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
     echo "  sudo systemctl start stratus"
+    echo "  tail -f /var/log/stratus/stratus.log"
 else
     echo "  java -jar build/libs/stratus-orchestrator-all.jar"
 fi

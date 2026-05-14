@@ -35,6 +35,12 @@ echo -e "\n${COLOR_BLUE}--- Rebuilding Stratus Project ---${COLOR_NC}"
 chmod +x gradlew
 ./gradlew shadowJar :stratus-plugin:build -x test
 
+# 3. Deploy new JAR
+if [ -d "/opt/stratus" ]; then
+    echo -e "${COLOR_BLUE}Deploying new JAR to /opt/stratus...${COLOR_NC}"
+    sudo cp -v build/libs/stratus-orchestrator-all.jar /opt/stratus/
+fi
+
 echo -e "\n${COLOR_GREEN}✔ Update and Build Complete!${COLOR_NC}"
 
 if systemctl is-active --quiet stratus; then
