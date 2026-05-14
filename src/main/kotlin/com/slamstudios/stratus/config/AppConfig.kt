@@ -28,8 +28,10 @@ data class AppConfig(
             ).firstOrNull { it.exists() }
 
             if (yamlFile != null) {
+                println("[Stratus] Loading configuration from: ${yamlFile.absolutePath}")
                 log.info("Loading configuration from: ${yamlFile.absolutePath}")
             } else {
+                println("[Stratus] WARN: No YAML configuration file found!")
                 log.warn("No YAML configuration file found! Using defaults and environment variables.")
             }
 
@@ -37,6 +39,7 @@ data class AppConfig(
                 try {
                     Yaml().load<Map<String, Any>>(FileInputStream(yamlFile)) ?: emptyMap()
                 } catch (e: Exception) {
+                    println("[Stratus] ERROR: Failed to parse YAML: ${e.message}")
                     log.error("Failed to parse YAML configuration: ${e.message}")
                     emptyMap()
                 }
