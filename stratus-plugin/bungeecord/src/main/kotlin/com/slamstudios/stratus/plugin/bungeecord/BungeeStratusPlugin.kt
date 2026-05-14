@@ -14,6 +14,6 @@ class BungeeStratusPlugin : Plugin() {
     }
 
     override fun onDisable() {
-        impl.onDisable()
+        impl.shutdown()
     }
 }

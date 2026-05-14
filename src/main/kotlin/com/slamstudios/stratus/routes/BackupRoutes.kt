@@ -7,6 +7,7 @@ import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -47,7 +48,7 @@ fun Route.backupRoutes() {
 
             // Exchange code for tokens
             val response = client.post("https://oauth2.googleapis.com/token") {
-                setBody(
+                setBody<FormDataContent>(
                     FormDataContent(Parameters.build {
                         append("client_id", config.clientId)
                         append("client_secret", config.clientSecret)

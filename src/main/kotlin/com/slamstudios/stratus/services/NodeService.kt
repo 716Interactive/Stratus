@@ -12,9 +12,15 @@ data class Node(
     val id: String,
     val pterodactylId: Int,
     val name: String,
+    val host: String,
+    val token: String,
     val totalMemory: Int,
     val totalDisk: Int
 )
+
+fun Node.usedMemory(): Int = ServerService.getAll().filter { it.nodeId == this.id }.sumOf { it.memory }
+fun Node.usedDisk(): Int = ServerService.getAll().filter { it.nodeId == this.id }.sumOf { it.disk }
+fun Node.canFit(memory: Int, disk: Int): Boolean = (totalMemory - usedMemory() >= memory) && (totalDisk - usedDisk() >= disk)
 
 object NodeService {
 
@@ -35,6 +41,8 @@ object NodeService {
             it[id] = node.id
             it[pterodactylId] = node.pterodactylId
             it[name] = node.name
+            it[host] = node.host
+            it[token] = node.token
             it[totalMemory] = node.totalMemory
             it[totalDisk] = node.totalDisk
         }
@@ -57,6 +65,8 @@ object NodeService {
         id = this[Nodes.id],
         pterodactylId = this[Nodes.pterodactylId],
         name = this[Nodes.name],
+        host = this[Nodes.host],
+        token = this[Nodes.token],
         totalMemory = this[Nodes.totalMemory],
         totalDisk = this[Nodes.totalDisk]
     )

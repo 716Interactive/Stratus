@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.javatime.datetime
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import java.util.*
@@ -25,7 +26,7 @@ object GoogleDriveConfigs : Table("google_drive_config") {
     val accessToken = text("access_token").nullable()
     val refreshToken = text("refresh_token").nullable()
     val backupIntervalMinutes = integer("backup_interval_minutes").default(1440)
-    val lastBackupAt = org.jetbrains.exposed.sql.javatime.datetime("last_backup_at").nullable()
+    val lastBackupAt = datetime("last_backup_at").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 

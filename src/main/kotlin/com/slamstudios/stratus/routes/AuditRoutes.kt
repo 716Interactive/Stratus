@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlinx.serialization.Serializable
+import java.time.LocalDateTime
 
 @Serializable
 data class AuditLogEntry(
@@ -33,7 +34,7 @@ fun Route.auditRoutes() {
                             category = it[AuditLogs.category],
                             message = it[AuditLogs.message],
                             metadata = it[AuditLogs.metadata],
-                            createdAt = it[AuditLogs.createdAt].toString()
+                            createdAt = it.getOrNull<LocalDateTime>(AuditLogs.createdAt).toString()
                         )
                     }
             }

@@ -32,7 +32,7 @@ read -p "Pterodactyl Panel URL (e.g., https://panel.example.com): " PTERO_URL
 read -p "Pterodactyl Application API Key: " PTERO_KEY
 read -p "Pterodactyl Owner User ID (default 1): " PTERO_OWNER
 PTERO_OWNER=${PTERO_OWNER:-1}
-read -p "Public Orchestrator URL (e.g., http://1.2.3.4:8080): " ORCH_URL
+read -p "Public Orchestrator URL (e.g., http://1.2.3.4:8081): " ORCH_URL
 
 # 2. Generate .env file
 echo -e "\n${COLOR_BLUE}--- Generating Environment File ---${COLOR_NC}"
@@ -50,11 +50,16 @@ PTERODACTYL_URL=$PTERO_URL
 PTERODACTYL_API_KEY=$PTERO_KEY
 PTERODACTYL_OWNER_ID=$PTERO_OWNER
 STRATUS_URL=$ORCH_URL
+PORT=8081
 EOT
 
 echo -e "${COLOR_GREEN}✔ .env file generated.${COLOR_NC}"
 
 # 3. Final Instructions
 echo -e "\n${COLOR_GREEN}Setup Complete!${COLOR_NC}"
-echo "You can now run the orchestrator using: ./gradlew run"
+echo "You can now run the orchestrator using:"
+echo "  Option A (Development): ./gradlew run"
+echo "  Option B (Production):  java -jar build/libs/stratus-orchestrator-all.jar"
+echo ""
 echo "Make sure you have Java 17+, MariaDB, and Redis installed and running."
+echo "The orchestrator is configured to listen on port 8081."

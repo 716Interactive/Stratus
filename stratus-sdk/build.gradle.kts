@@ -1,10 +1,14 @@
 plugins {
-    kotlin("jvm") version "2.1.0"
-    kotlin("plugin.serialization") version "2.1.0"
+    kotlin("jvm")
+    kotlin("plugin.serialization")
 }
 
 group = "com.slamstudios.stratus"
 version = "1.0-SNAPSHOT"
+
+kotlin {
+    jvmToolchain(17)
+}
 
 repositories {
     mavenCentral()

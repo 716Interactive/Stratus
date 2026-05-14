@@ -170,11 +170,11 @@ object OrchestratorService {
         return when (strategy.uppercase()) {
             "BIN_PACKING" -> {
                 // Pick node with LEAST available memory to "fill" it up
-                candidateNodes.minByOrNull { it.totalMemory - it.currentMemory }
+                candidateNodes.minByOrNull { it.totalMemory - it.usedMemory() }
             }
             "SPREAD" -> {
                 // Pick node with MOST available memory to balance load
-                candidateNodes.maxByOrNull { it.totalMemory - it.currentMemory }
+                candidateNodes.maxByOrNull { it.totalMemory - it.usedMemory() }
             }
             else -> candidateNodes.random()
         }
@@ -229,7 +229,9 @@ object OrchestratorService {
                 groupId = group.id,
                 templateVersionId = version.id,
                 host = pteroServer.host ?: "127.0.0.1",
-                port = pteroServer.port ?: 25565
+                port = pteroServer.port ?: 25565,
+                memory = templateConfig.memory,
+                disk = templateConfig.disk
             )
         } else {
             logger.error("Failed to provision Pterodactyl server for group ${group.name}")

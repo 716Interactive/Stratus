@@ -4,6 +4,7 @@ import com.google.inject.Inject
 import com.slamstudios.stratus.plugin.common.StratusPluginBase
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.proxy.ProxyServer
 import com.velocitypowered.api.proxy.server.ServerInfo
@@ -11,6 +12,7 @@ import kotlinx.serialization.json.*
 import redis.clients.jedis.JedisPubSub
 import java.net.InetSocketAddress
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.*
 
 @Plugin(id = "stratus", name = "Stratus", version = "1.0", authors = ["SlamTheHam"])
 class VelocityStratusPlugin @Inject constructor(
@@ -61,4 +63,9 @@ class VelocityStratusPlugin @Inject constructor(
 
     override fun getPlayerCount(): Int = server.playerCount
     override fun getMetadata(): String? = "{\"platform\":\"velocity\"}"
+
+    @Subscribe
+    fun onProxyShutdown(event: ProxyShutdownEvent) {
+        super.shutdown()
+    }
 }

@@ -20,6 +20,8 @@ data class ManagedServer(
     val templateVersionId: String,
     val host: String,
     val port: Int,
+    val memory: Int,
+    val disk: Int,
     val state: ServerState,
     val players: Int,
     val autoProxyAdd: Boolean,
@@ -111,7 +113,9 @@ object ServerService {
         groupId: String,
         templateVersionId: String,
         host: String,
-        port: Int
+        port: Int,
+        memory: Int,
+        disk: Int
     ): ManagedServer = transaction {
         Servers.insert {
             it[Servers.id] = id
@@ -121,11 +125,13 @@ object ServerService {
             it[Servers.templateVersionId] = templateVersionId
             it[Servers.host] = host
             it[Servers.port] = port
+            it[Servers.memory] = memory
+            it[Servers.disk] = disk
             it[Servers.state] = ServerState.STARTING.name
             it[Servers.stateChangedAt] = LocalDateTime.now()
             it[Servers.createdAt] = LocalDateTime.now()
         }
-        ManagedServer(id, pteroId, nodeId, groupId, templateVersionId, host, port, ServerState.STARTING, 0, null, null, LocalDateTime.now().toString(), LocalDateTime.now().toString())
+        ManagedServer(id, pteroId, nodeId, groupId, templateVersionId, host, port, memory, disk, ServerState.STARTING, 0, true, null, null, LocalDateTime.now().toString(), LocalDateTime.now().toString())
     }
 
     fun createWithId(
@@ -135,8 +141,10 @@ object ServerService {
         groupId: String,
         templateVersionId: String,
         host: String,
-        port: Int
-    ) = create(id, pteroId, nodeId, groupId, templateVersionId, host, port)
+        port: Int,
+        memory: Int,
+        disk: Int
+    ) = create(id, pteroId, nodeId, groupId, templateVersionId, host, port, memory, disk)
 
     fun delete(id: String) = transaction {
         Servers.deleteWhere { Servers.id eq id }
@@ -163,6 +171,8 @@ object ServerService {
         templateVersionId = this[Servers.templateVersionId],
         host = this[Servers.host],
         port = this[Servers.port],
+        memory = this[Servers.memory],
+        disk = this[Servers.disk],
         state = ServerState.fromString(this[Servers.state]),
         players = this[Servers.players],
         autoProxyAdd = this[Servers.autoProxyAdd],

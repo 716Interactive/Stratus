@@ -154,10 +154,14 @@ object GroupService {
         templateVersionId = this[Servers.templateVersionId],
         host = this[Servers.host],
         port = this[Servers.port],
+        memory = this[Servers.memory],
+        disk = this[Servers.disk],
         state = ServerState.fromString(this[Servers.state]),
         players = this[Servers.players],
+        autoProxyAdd = this[Servers.autoProxyAdd],
         metadata = this[Servers.metadata],
         lastHeartbeat = this[Servers.lastHeartbeat]?.toString(),
+        stateChangedAt = this[Servers.stateChangedAt].toString(),
         createdAt = this[Servers.createdAt].toString()
     )
 }

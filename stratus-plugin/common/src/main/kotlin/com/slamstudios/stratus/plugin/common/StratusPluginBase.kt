@@ -38,7 +38,7 @@ abstract class StratusPluginBase {
         }
     }
 
-    open fun onDisable() {
+    open fun shutdown() {
         runBlocking {
             try {
                 api?.updateState("TERMINATED")

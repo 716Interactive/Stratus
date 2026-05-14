@@ -43,6 +43,8 @@ object Servers : Table("servers") {
     val templateVersionId = char("template_version_id", 36).references(TemplateVersions.id)
     val host              = varchar("host", 45)
     val port              = integer("port")
+    val memory            = integer("memory").default(0)
+    val disk              = integer("disk").default(0)
     /** Stored as VARCHAR matching the ENUM values defined in SQL. */
     val state             = varchar("state", 20)
     val players           = integer("players")

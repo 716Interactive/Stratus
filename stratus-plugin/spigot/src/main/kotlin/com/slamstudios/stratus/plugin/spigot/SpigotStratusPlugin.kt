@@ -14,6 +14,6 @@ class SpigotStratusPlugin : JavaPlugin() {
     }
 
     override fun onDisable() {
-        impl.onDisable()
+        impl.shutdown()
     }
 }
