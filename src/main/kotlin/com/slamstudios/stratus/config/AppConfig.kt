@@ -20,8 +20,12 @@ data class AppConfig(
 ) {
     companion object {
         fun load(config: ApplicationConfig): AppConfig {
-            val yamlFile = File("config.yml")
-            val yamlData = if (yamlFile.exists()) {
+            val yamlFile = listOf(
+                File("/etc/stratus/config.yml"),
+                File("config.yml")
+            ).firstOrNull { it.exists() }
+
+            val yamlData = if (yamlFile != null) {
                 Yaml().load<Map<String, Any>>(FileInputStream(yamlFile))
             } else {
                 emptyMap()
