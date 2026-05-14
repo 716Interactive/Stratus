@@ -45,11 +45,7 @@ data class AppConfig(
             }
 
             fun getProp(path: String, yamlPath: String): String? {
-                // Check environment variable first (standardized by Ktor)
-                val envVar = path.uppercase().replace(".", "_")
-                System.getenv(envVar)?.let { return it }
-                
-                // Check YAML
+                // 1. Check YAML (User's manual config file)
                 val yamlParts = yamlPath.split(".")
                 var current: Any? = yamlData
                 for (part in yamlParts) {
@@ -57,18 +53,28 @@ data class AppConfig(
                 }
                 if (current != null) return current.toString()
 
-                // Fallback to application.conf
+                // 2. Check environment variable
+                val envVar = path.uppercase().replace(".", "_")
+                System.getenv(envVar)?.let { return it }
+                
+                // 3. Fallback to application.conf
                 return config.propertyOrNull(path)?.getString()
             }
+
+            val dbHost = getProp("stratus.database.host", "database.host") ?: "localhost"
+            val dbUser = getProp("stratus.database.user", "database.user") ?: "stratus"
+            val dbPass = getProp("stratus.database.password", "database.password") ?: "changeme"
+            
+            log.info("Database Configuration: host=$dbHost, user=$dbUser")
 
             return AppConfig(
                 token = getProp("stratus.token", "token") ?: "changeme",
                 database = DatabaseConfig(
-                    host     = getProp("stratus.database.host", "database.host") ?: "localhost",
+                    host     = dbHost,
                     port     = getProp("stratus.database.port", "database.port")?.toInt() ?: 3306,
                     name     = getProp("stratus.database.name", "database.name") ?: "stratus",
-                    user     = getProp("stratus.database.user", "database.user") ?: "stratus",
-                    password = getProp("stratus.database.password", "database.password") ?: "changeme",
+                    user     = dbUser,
+                    password = dbPass,
                     poolSize = getProp("stratus.database.poolSize", "database.poolSize")?.toInt() ?: 10,
                 ),
                 redis = RedisConfig(
