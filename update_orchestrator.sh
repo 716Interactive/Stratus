@@ -30,25 +30,64 @@ else
     git pull
 fi
 
-# 2. Rebuild the project
-echo -e "\n${COLOR_BLUE}--- Rebuilding Stratus Project ---${COLOR_NC}"
-chmod +x gradlew
-./gradlew shadowJar :stratus-plugin:build -x test
+# 3. Handle Migration and Deployment
+if [ ! -d "/opt/stratus" ]; then
+    echo -e "\n${COLOR_BLUE}--- Migrating to Professional Structure ---${COLOR_NC}"
+    echo "This will move your configuration to /etc/stratus and application to /opt/stratus."
+    
+    # Create Directories
+    sudo mkdir -p /opt/stratus
+    sudo mkdir -p /etc/stratus
+    sudo mkdir -p /var/log/stratus
+    
+    # Move Config if exists
+    if [ -f "config.yml" ]; then
+        sudo cp -v config.yml /etc/stratus/config.yml
+    fi
+    
+    # Fix Permissions
+    CUR_USER=$(whoami)
+    sudo chown -R $CUR_USER:$CUR_USER /opt/stratus
+    sudo chown -R $CUR_USER:$CUR_USER /etc/stratus
+    sudo chown -R $CUR_USER:$CUR_USER /var/log/stratus
 
-# 3. Deploy new JAR
-if [ -d "/opt/stratus" ]; then
-    echo -e "${COLOR_BLUE}Deploying new JAR to /opt/stratus...${COLOR_NC}"
-    sudo cp -v build/libs/stratus-orchestrator-all.jar /opt/stratus/
+    # Re-install Service (with new paths)
+    JAVA_PATH=$(which java)
+    cat <<EOT > stratus.service
+[Unit]
+Description=Stratus Orchestrator
+After=network.target mysql.service redis.service
+
+[Service]
+User=$CUR_USER
+WorkingDirectory=/opt/stratus
+Environment="STRATUS_LOG_DIR=/var/log/stratus"
+ExecStart=$JAVA_PATH -jar /opt/stratus/stratus-orchestrator-all.jar
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOT
+    sudo mv stratus.service /etc/systemd/system/stratus.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable stratus
+    echo -e "${COLOR_GREEN}✔ Migration complete.${COLOR_NC}"
 fi
+
+# Deploy new JAR
+echo -e "${COLOR_BLUE}Deploying new JAR to /opt/stratus...${COLOR_NC}"
+sudo cp -v build/libs/stratus-orchestrator-all.jar /opt/stratus/
 
 echo -e "\n${COLOR_GREEN}✔ Update and Build Complete!${COLOR_NC}"
 
-if systemctl is-active --quiet stratus; then
+# 4. Restart Service
+if systemctl list-unit-files | grep -q "^stratus.service"; then
     echo -e "${COLOR_BLUE}Restarting Stratus service...${COLOR_NC}"
     sudo systemctl restart stratus
     echo -e "${COLOR_GREEN}✔ Service restarted.${COLOR_NC}"
 else
-    echo "Restart your orchestrator service manually to apply changes."
+    echo "Stratus service not found. Start it manually if needed."
 fi
 
 echo "Updated plugins are in their respective build/libs folders."
