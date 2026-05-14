@@ -8,6 +8,14 @@ plugins {
 group = "com.slamstudios.stratus"
 version = "1.0.0"
 
+tasks.register<JavaExec>("run") {
+    group = "application"
+    description = "Runs the orchestrator"
+    mainClass.set("com.slamstudios.stratus.ApplicationKt")
+    classpath = project.extensions.getByType<JavaPluginExtension>().sourceSets.getByName("main").runtimeClasspath
+    standardInput = System.`in`
+}
+
 kotlin {
     jvmToolchain(17)
 }
