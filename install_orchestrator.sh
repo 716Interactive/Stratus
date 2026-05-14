@@ -99,10 +99,50 @@ else
     echo -e "${COLOR_RED}Build skipped. You will need to build manually before running.${COLOR_NC}"
 fi
 
-# 4. Final Instructions
+# 4. Systemd Service
+echo -e "\n${COLOR_BLUE}--- Systemd Service Installation ---${COLOR_NC}"
+read -p "Would you like to install the systemd service? (y/n) [n]: " INSTALL_SERVICE
+INSTALL_SERVICE=${INSTALL_SERVICE:-n}
+
+if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
+    CUR_USER=$(whoami)
+    CUR_DIR=$(pwd)
+    JAVA_PATH=$(which java)
+
+    cat <<EOT > stratus.service
+[Unit]
+Description=Stratus Orchestrator
+After=network.target mysql.service redis.service
+
+[Service]
+User=$CUR_USER
+WorkingDirectory=$CUR_DIR
+ExecStart=$JAVA_PATH -jar build/libs/stratus-orchestrator-all.jar
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+    echo -e "${COLOR_BLUE}Installing service... (requires sudo)${COLOR_NC}"
+    sudo mv stratus.service /etc/systemd/system/stratus.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable stratus
+    echo -e "${COLOR_GREEN}✔ Service installed and enabled.${COLOR_NC}"
+    echo "You can start it using: sudo systemctl start stratus"
+else
+    echo "Service installation skipped."
+fi
+
+# 5. Final Instructions
 echo -e "\n${COLOR_GREEN}Setup Complete!${COLOR_NC}"
 echo "You can now start the orchestrator using:"
-echo "  java -jar build/libs/stratus-orchestrator-all.jar"
+if [[ $INSTALL_SERVICE =~ ^[Yy]$ ]]; then
+    echo "  sudo systemctl start stratus"
+else
+    echo "  java -jar build/libs/stratus-orchestrator-all.jar"
+fi
 echo ""
 echo "Plugins for game servers are located in:"
 echo "  stratus-plugin/[spigot|velocity|bungeecord]/build/libs/"

@@ -36,5 +36,13 @@ chmod +x gradlew
 ./gradlew shadowJar :stratus-plugin:build -x test
 
 echo -e "\n${COLOR_GREEN}✔ Update and Build Complete!${COLOR_NC}"
-echo "Restart your orchestrator service to apply changes."
+
+if systemctl is-active --quiet stratus; then
+    echo -e "${COLOR_BLUE}Restarting Stratus service...${COLOR_NC}"
+    sudo systemctl restart stratus
+    echo -e "${COLOR_GREEN}✔ Service restarted.${COLOR_NC}"
+else
+    echo "Restart your orchestrator service manually to apply changes."
+fi
+
 echo "Updated plugins are in their respective build/libs folders."
