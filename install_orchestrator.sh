@@ -85,11 +85,26 @@ EOT
 
 echo -e "${COLOR_GREEN}✔ config.yml generated.${COLOR_NC}"
 
-# 3. Final Instructions
+# 3. Build Project
+echo -e "\n${COLOR_BLUE}--- Building Stratus Project ---${COLOR_NC}"
+read -p "Would you like to build the project now? (y/n) [y]: " BUILD_NOW
+BUILD_NOW=${BUILD_NOW:-y}
+
+if [[ $BUILD_NOW =~ ^[Yy]$ ]]; then
+    echo -e "${COLOR_BLUE}Running Gradle build (this may take a few minutes)...${COLOR_NC}"
+    chmod +x gradlew
+    ./gradlew shadowJar :stratus-plugin:build -x test
+    echo -e "${COLOR_GREEN}✔ Build successful! Artifacts generated in build/libs folders.${COLOR_NC}"
+else
+    echo -e "${COLOR_RED}Build skipped. You will need to build manually before running.${COLOR_NC}"
+fi
+
+# 4. Final Instructions
 echo -e "\n${COLOR_GREEN}Setup Complete!${COLOR_NC}"
-echo "You can now run the orchestrator using:"
-echo "  Option A (Development): ./gradlew run"
-echo "  Option B (Production):  java -jar build/libs/stratus-orchestrator-all.jar"
+echo "You can now start the orchestrator using:"
+echo "  java -jar build/libs/stratus-orchestrator-all.jar"
 echo ""
-echo "Make sure you have Java 17+, MariaDB, and Redis installed and running."
-echo "The orchestrator is listening on port 8081."
+echo "Plugins for game servers are located in:"
+echo "  stratus-plugin/[spigot|velocity|bungeecord]/build/libs/"
+echo ""
+echo "To update in the future, run: bash update_orchestrator.sh"
