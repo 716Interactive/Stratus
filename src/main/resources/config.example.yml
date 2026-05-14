@@ -1,0 +1,28 @@
+# Stratus Orchestrator Configuration
+# Copyright (c) 2026 Slam Studios
+
+# Secure token for API authentication
+token: "changeme"
+
+# Database connection settings
+database:
+  host: "localhost"
+  port: 3306
+  name: "stratus"
+  user: "stratus"
+  password: "changeme"
+  poolSize: 10
+
+# Redis connection settings
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+
+# Pterodactyl Panel integration
+pterodactyl:
+  baseUrl: "https://panel.example.com"
+  apiKey: "changeme"
+  ownerId: 1
+  # The public URL where this orchestrator is accessible
+  orchestratorUrl: "http://localhost:8081"

@@ -1,10 +1,16 @@
 package com.slamstudios.stratus.config
 
 import io.ktor.server.config.*
+import org.yaml.snakeyaml.Yaml
+import java.io.File
+import java.io.FileInputStream
 
 /**
- * Top-level application configuration loaded from application.conf.
- * All values can be overridden with environment variables (see application.conf).
+ * Top-level application configuration.
+ * Priority: 
+ * 1. Environment variables
+ * 2. config.yml
+ * 3. application.conf (Ktor defaults)
  */
 data class AppConfig(
     val token: String,
@@ -13,29 +19,54 @@ data class AppConfig(
     val pterodactyl: PterodactylConfig,
 ) {
     companion object {
-        fun load(config: ApplicationConfig): AppConfig = AppConfig(
-            token = config.property("stratus.token").getString(),
-            database = DatabaseConfig(
-                host     = config.property("stratus.database.host").getString(),
-                port     = config.property("stratus.database.port").getString().toInt(),
-                name     = config.property("stratus.database.name").getString(),
-                user     = config.property("stratus.database.user").getString(),
-                password = config.property("stratus.database.password").getString(),
-                poolSize = config.property("stratus.database.poolSize").getString().toInt(),
-            ),
-            redis = RedisConfig(
-                host     = config.property("stratus.redis.host").getString(),
-                port     = config.property("stratus.redis.port").getString().toInt(),
-                password = config.propertyOrNull("stratus.redis.password")?.getString()
-                    ?.takeIf { it.isNotBlank() },
-            ),
-            pterodactyl = PterodactylConfig(
-                baseUrl = config.property("stratus.pterodactyl.baseUrl").getString(),
-                apiKey  = config.property("stratus.pterodactyl.apiKey").getString(),
-                ownerId = config.property("stratus.pterodactyl.ownerId").getString().toInt(),
-                orchestratorUrl = config.property("stratus.pterodactyl.orchestratorUrl").getString(),
-            ),
-        )
+        fun load(config: ApplicationConfig): AppConfig {
+            val yamlFile = File("config.yml")
+            val yamlData = if (yamlFile.exists()) {
+                Yaml().load<Map<String, Any>>(FileInputStream(yamlFile))
+            } else {
+                emptyMap()
+            }
+
+            fun getProp(path: String, yamlPath: String): String? {
+                // Check environment variable first (standardized by Ktor)
+                val envVar = path.uppercase().replace(".", "_")
+                System.getenv(envVar)?.let { return it }
+                
+                // Check YAML
+                val yamlParts = yamlPath.split(".")
+                var current: Any? = yamlData
+                for (part in yamlParts) {
+                    current = (current as? Map<*, *>)?.get(part)
+                }
+                if (current != null) return current.toString()
+
+                // Fallback to application.conf
+                return config.propertyOrNull(path)?.getString()
+            }
+
+            return AppConfig(
+                token = getProp("stratus.token", "token") ?: "changeme",
+                database = DatabaseConfig(
+                    host     = getProp("stratus.database.host", "database.host") ?: "localhost",
+                    port     = getProp("stratus.database.port", "database.port")?.toInt() ?: 3306,
+                    name     = getProp("stratus.database.name", "database.name") ?: "stratus",
+                    user     = getProp("stratus.database.user", "database.user") ?: "stratus",
+                    password = getProp("stratus.database.password", "database.password") ?: "changeme",
+                    poolSize = getProp("stratus.database.poolSize", "database.poolSize")?.toInt() ?: 10,
+                ),
+                redis = RedisConfig(
+                    host     = getProp("stratus.redis.host", "redis.host") ?: "localhost",
+                    port     = getProp("stratus.redis.port", "redis.port")?.toInt() ?: 6379,
+                    password = getProp("stratus.redis.password", "redis.password")?.takeIf { it.isNotBlank() },
+                ),
+                pterodactyl = PterodactylConfig(
+                    baseUrl = getProp("stratus.pterodactyl.baseUrl", "pterodactyl.baseUrl") ?: "http://localhost",
+                    apiKey  = getProp("stratus.pterodactyl.apiKey", "pterodactyl.apiKey") ?: "changeme",
+                    ownerId = getProp("stratus.pterodactyl.ownerId", "pterodactyl.ownerId")?.toInt() ?: 1,
+                    orchestratorUrl = getProp("stratus.pterodactyl.orchestratorUrl", "pterodactyl.orchestratorUrl") ?: "http://localhost:8081",
+                ),
+            )
+        }
     }
 }
 
