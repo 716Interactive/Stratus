@@ -65,7 +65,7 @@ echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
 echo -e "\n${COLOR_BLUE}--- Building Stratus Components ---${COLOR_NC}"
 if [ -f "./gradlew" ]; then
     chmod +x ./gradlew
-    ./gradlew shadowJar :stratus-plugin:build -x test
+    ./gradlew shadowJar :stratus-plugin:build -x test --no-build-cache
     cp -v build/libs/stratus-orchestrator-all.jar ./stratus-orchestrator.jar
     # Copy plugin to panel storage for auto-install
     cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
