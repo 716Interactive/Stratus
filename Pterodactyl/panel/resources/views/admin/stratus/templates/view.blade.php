@@ -62,8 +62,16 @@
                 </div>
                 <div class="box-body">
                     <div class="form-group">
-                        <label for="eggId" class="control-label">Pterodactyl Egg ID</label>
-                        <input type="number" name="eggId" id="eggId" class="form-control" placeholder="1" />
+                        <label for="eggId" class="control-label">Pterodactyl Egg</label>
+                        <select name="eggId" id="eggId" class="form-control">
+                            @foreach($nests as $nest)
+                                <optgroup label="{{ $nest->name }}">
+                                    @foreach($nest->eggs as $egg)
+                                        <option value="{{ $egg->id }}">{{ $egg->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="config" class="control-label">Configuration JSON</label>

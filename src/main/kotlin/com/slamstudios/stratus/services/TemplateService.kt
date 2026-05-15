@@ -15,7 +15,8 @@ data class Template(
     val id: String,
     val name: String,
     val currentVersionId: String?,
-    val localPath: String
+    val localPath: String,
+    val ownerId: Int
 )
 
 @Serializable
@@ -44,14 +45,15 @@ object TemplateService {
             .map { it.toTemplateVersion() }
     }
 
-    fun createTemplate(name: String): Template = transaction {
+    fun createTemplate(name: String, ownerId: Int = 1): Template = transaction {
         val id = UUID.randomUUID().toString()
         Templates.insert {
             it[Templates.id] = id
             it[Templates.name] = name
             it[Templates.localPath] = "/var/lib/pterodactyl/templates"
+            it[Templates.ownerId] = ownerId
         }
-        Template(id, name, null, "/var/lib/pterodactyl/templates")
+        Template(id, name, null, "/var/lib/pterodactyl/templates", ownerId)
     }
 
     fun createVersion(templateId: String, eggId: Int, configJson: String): TemplateVersion = transaction {
@@ -84,7 +86,8 @@ object TemplateService {
         id = this[Templates.id],
         name = this[Templates.name],
         currentVersionId = this[Templates.currentVersionId],
-        localPath = this[Templates.localPath]
+        localPath = this[Templates.localPath],
+        ownerId = this[Templates.ownerId]
     )
 
     private fun ResultRow.toTemplateVersion() = TemplateVersion(

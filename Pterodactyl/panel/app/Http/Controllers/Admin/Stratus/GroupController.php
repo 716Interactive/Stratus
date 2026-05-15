@@ -59,7 +59,9 @@ class GroupController extends Controller
             'scaleDownCooldownSeconds' => 'required|integer|min:0',
         ]);
 
-        $group = $this->api->createGroup($request->all());
+        $data = $request->all();
+        $data['ownerId'] = $request->user()->id;
+        $group = $this->api->createGroup($data);
 
         if (!$group) {
             return redirect()->back()->withErrors('Failed to create group via Orchestrator API.');

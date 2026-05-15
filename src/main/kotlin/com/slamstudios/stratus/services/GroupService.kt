@@ -22,7 +22,8 @@ data class ServerGroup(
     val scaleDownCooldownSeconds: Int,
     val preferredNodeId: String?,
     val schedulingStrategy: String,
-    val metadata: String?
+    val metadata: String?,
+    val ownerId: Int
 )
 
 object GroupService {
@@ -92,7 +93,8 @@ object GroupService {
         max: Int,
         target: Int,
         cooldown: Int,
-        metadata: String?
+        metadata: String?,
+        ownerId: Int = 1
     ): ServerGroup = transaction {
         val id = UUID.randomUUID().toString()
         ServerGroups.insert {
@@ -106,8 +108,9 @@ object GroupService {
             it[ServerGroups.preferredNodeId] = null
             it[ServerGroups.schedulingStrategy] = "SPREAD"
             it[ServerGroups.metadata] = metadata
+            it[ServerGroups.ownerId] = ownerId
         }
-        ServerGroup(id, name, templateId, min, max, target, cooldown, null, "SPREAD", metadata)
+        ServerGroup(id, name, templateId, min, max, target, cooldown, null, "SPREAD", metadata, ownerId)
     }
 
     fun update(
@@ -143,7 +146,8 @@ object GroupService {
         scaleDownCooldownSeconds = this[ServerGroups.scaleDownCooldownSeconds],
         preferredNodeId = this[ServerGroups.preferredNodeId],
         schedulingStrategy = this[ServerGroups.schedulingStrategy],
-        metadata = this[ServerGroups.metadata]
+        metadata = this[ServerGroups.metadata],
+        ownerId = this[ServerGroups.ownerId]
     )
 
     private fun ResultRow.toManagedServer() = ManagedServer(

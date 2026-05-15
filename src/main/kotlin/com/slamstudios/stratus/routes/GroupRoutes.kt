@@ -16,7 +16,8 @@ data class CreateGroupRequest(
     val maxServers: Int,
     val targetFreeSlots: Int,
     val scaleDownCooldownSeconds: Int,
-    val metadata: String? = null
+    val metadata: String? = null,
+    val ownerId: Int = 1
 )
 
 @Serializable
@@ -39,7 +40,7 @@ fun Route.groupRoutes() {
             val req = call.receive<CreateGroupRequest>()
             val group = GroupService.create(
                 req.name, req.templateId, req.minServers, req.maxServers,
-                req.targetFreeSlots, req.scaleDownCooldownSeconds, req.metadata
+                req.targetFreeSlots, req.scaleDownCooldownSeconds, req.metadata, req.ownerId
             )
             call.respond(group)
         }

@@ -8,6 +8,8 @@ import SubNavigation from '@/components/elements/SubNavigation';
 import { useLocation } from 'react-router';
 import Spinner from '@/components/elements/Spinner';
 import routes from '@/routers/routes';
+import GroupContainer from '@/components/stratus/GroupContainer';
+import TemplateContainer from '@/components/stratus/TemplateContainer';
 
 export default () => {
     const location = useLocation();
@@ -33,6 +35,12 @@ export default () => {
                     <Switch location={location}>
                         <Route path={'/'} exact>
                             <DashboardContainer />
+                        </Route>
+                        <Route path={'/stratus/groups'} exact>
+                            <GroupContainer />
+                        </Route>
+                        <Route path={'/stratus/templates'} exact>
+                            <TemplateContainer />
                         </Route>
                         {routes.account.map(({ path, component: Component }) => (
                             <Route key={path} path={`/account/${path}`.replace('//', '/')} exact>

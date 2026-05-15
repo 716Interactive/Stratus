@@ -9,7 +9,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CreateTemplateRequest(val name: String)
+data class CreateTemplateRequest(val name: String, val ownerId: Int = 1)
 
 @Serializable
 data class CreateVersionRequest(val eggId: Int, val config: String)
@@ -28,7 +28,7 @@ fun Route.templateRoutes() {
 
         post {
             val req = call.receive<CreateTemplateRequest>()
-            call.respond(TemplateService.createTemplate(req.name))
+            call.respond(TemplateService.createTemplate(req.name, req.ownerId))
         }
 
         get("/{id}") {

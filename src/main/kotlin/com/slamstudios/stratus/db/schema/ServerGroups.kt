@@ -16,6 +16,7 @@ object ServerGroups : Table("server_groups") {
     val schedulingStrategy       = varchar("scheduling_strategy", 20).default("SPREAD")
     /** Optional JSON metadata (game type, map, etc.) stored as text. */
     val metadata                 = text("metadata").nullable()
+    val ownerId                  = integer("owner_id").default(1)
 
     override val primaryKey = PrimaryKey(id)
 }

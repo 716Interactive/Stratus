@@ -5,6 +5,8 @@ namespace Pterodactyl\Http\Controllers\Admin\Stratus;
 use Pterodactyl\Http\Controllers\Controller;
 use Pterodactyl\Services\Stratus\StratusApiService;
 use Illuminate\Http\Request;
+use Pterodactyl\Models\Nest;
+use Pterodactyl\Models\Egg;
 
 class TemplateController extends Controller
 {
@@ -28,9 +30,12 @@ class TemplateController extends Controller
             return redirect()->route('admin.stratus.templates')->withErrors('Template not found.');
         }
 
+        $nests = Nest::with('eggs')->get();
+        
         return view('admin.stratus.templates.view', [
             'template' => $data['template'],
             'versions' => $data['versions'],
+            'nests' => $nests,
         ]);
     }
 
@@ -42,7 +47,9 @@ class TemplateController extends Controller
     public function store(Request $request)
     {
         $request->validate(['name' => 'required|string']);
-        $template = $this->api->createTemplate($request->all());
+        $data = $request->all();
+        $data['ownerId'] = $request->user()->id;
+        $template = $this->api->createTemplate($data);
 
         if (!$template) {
             return redirect()->back()->withErrors('Failed to create template.');
