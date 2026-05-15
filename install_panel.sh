@@ -41,24 +41,24 @@ fi
 echo -e "\n${COLOR_BLUE}--- Copying Stratus Files ---${COLOR_NC}"
 
 # Ensure directories exist
-mkdir -p "$PANEL_PATH/app/Services/Stratus"
-mkdir -p "$PANEL_PATH/app/Http/Controllers/Admin/Stratus"
-mkdir -p "$PANEL_PATH/app/Listeners/Stratus"
-mkdir -p "$PANEL_PATH/resources/views/admin/stratus/groups"
-mkdir -p "$PANEL_PATH/resources/views/admin/stratus/templates"
-mkdir -p "$PANEL_PATH/resources/views/admin/stratus/proxies"
-mkdir -p "$PANEL_PATH/storage/app/stratus"
+sudo mkdir -p "$PANEL_PATH/app/Services/Stratus"
+sudo mkdir -p "$PANEL_PATH/app/Http/Controllers/Admin/Stratus"
+sudo mkdir -p "$PANEL_PATH/app/Listeners/Stratus"
+sudo mkdir -p "$PANEL_PATH/resources/views/admin/stratus/groups"
+sudo mkdir -p "$PANEL_PATH/resources/views/admin/stratus/templates"
+sudo mkdir -p "$PANEL_PATH/resources/views/admin/stratus/proxies"
+sudo mkdir -p "$PANEL_PATH/storage/app/stratus"
 
 # Copy files from the repo to the panel
-cp -rv Pterodactyl/panel/app/Services/Stratus/* "$PANEL_PATH/app/Services/Stratus/"
-cp -rv Pterodactyl/panel/app/Http/Controllers/Admin/Stratus/* "$PANEL_PATH/app/Http/Controllers/Admin/Stratus/"
-cp -rv Pterodactyl/panel/app/Listeners/Stratus/* "$PANEL_PATH/app/Listeners/Stratus/"
-cp -v Pterodactyl/panel/config/stratus.php "$PANEL_PATH/config/"
-cp -rv Pterodactyl/panel/resources/views/admin/stratus/* "$PANEL_PATH/resources/views/admin/stratus/"
-cp -rv Pterodactyl/panel/resources/scripts/* "$PANEL_PATH/resources/scripts/"
-cp -v Pterodactyl/panel/app/Providers/EventServiceProvider.php "$PANEL_PATH/app/Providers/"
-cp -v Pterodactyl/panel/routes/admin.php "$PANEL_PATH/routes/"
-cp -v Pterodactyl/panel/resources/views/layouts/admin.blade.php "$PANEL_PATH/resources/views/layouts/"
+sudo cp -rv Pterodactyl/panel/app/Services/Stratus/* "$PANEL_PATH/app/Services/Stratus/"
+sudo cp -rv Pterodactyl/panel/app/Http/Controllers/Admin/Stratus/* "$PANEL_PATH/app/Http/Controllers/Admin/Stratus/"
+sudo cp -rv Pterodactyl/panel/app/Listeners/Stratus/* "$PANEL_PATH/app/Listeners/Stratus/"
+sudo cp -v Pterodactyl/panel/config/stratus.php "$PANEL_PATH/config/"
+sudo cp -rv Pterodactyl/panel/resources/views/admin/stratus/* "$PANEL_PATH/resources/views/admin/stratus/"
+sudo cp -rv Pterodactyl/panel/resources/scripts/* "$PANEL_PATH/resources/scripts/"
+sudo cp -v Pterodactyl/panel/app/Providers/EventServiceProvider.php "$PANEL_PATH/app/Providers/"
+sudo cp -v Pterodactyl/panel/routes/admin.php "$PANEL_PATH/routes/"
+sudo cp -v Pterodactyl/panel/resources/views/layouts/admin.blade.php "$PANEL_PATH/resources/views/layouts/"
 
 echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
 
@@ -70,9 +70,9 @@ if [ -f "./gradlew" ]; then
     ./gradlew :stratus-plugin:build -x test --no-build-cache
     
     # Copy plugins to panel storage for auto-install onto game servers
-    cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
-    cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar"
-    cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar"
+    sudo cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
+    sudo cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar"
+    sudo cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar"
     echo -e "${COLOR_GREEN}✔ Plugins built and placed in storage.${COLOR_NC}"
 else
     echo -e "${COLOR_RED}Warning: gradlew not found. Skipping plugin build.${COLOR_NC}"
@@ -82,15 +82,15 @@ fi
 echo -e "\n${COLOR_BLUE}--- Updating Environment Variables ---${COLOR_NC}"
 
 if grep -q "STRATUS_URL" "$PANEL_PATH/.env"; then
-    sed -i "s|STRATUS_URL=.*|STRATUS_URL=$STRATUS_URL|" "$PANEL_PATH/.env"
+    sudo sed -i "s|STRATUS_URL=.*|STRATUS_URL=$STRATUS_URL|" "$PANEL_PATH/.env"
 else
-    echo -e "\nSTRATUS_URL=$STRATUS_URL" >> "$PANEL_PATH/.env"
+    echo -e "\nSTRATUS_URL=$STRATUS_URL" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
 fi
 
 if grep -q "STRATUS_TOKEN" "$PANEL_PATH/.env"; then
-    sed -i "s|STRATUS_TOKEN=.*|STRATUS_TOKEN=$STRATUS_TOKEN|" "$PANEL_PATH/.env"
+    sudo sed -i "s|STRATUS_TOKEN=.*|STRATUS_TOKEN=$STRATUS_TOKEN|" "$PANEL_PATH/.env"
 else
-    echo -e "STRATUS_TOKEN=$STRATUS_TOKEN" >> "$PANEL_PATH/.env"
+    echo -e "STRATUS_TOKEN=$STRATUS_TOKEN" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
 fi
 
 echo -e "${COLOR_GREEN}✔ .env updated.${COLOR_NC}"
@@ -105,10 +105,10 @@ fi
 
 # 6. Finalizing
 echo -e "\n${COLOR_BLUE}--- Finalizing ---${COLOR_NC}"
-php artisan view:clear
-php artisan config:clear
-chown -R www-data:www-data "$PANEL_PATH"
-chown -R www-data:www-data "$PANEL_PATH/storage/app/stratus"
+sudo php artisan view:clear
+sudo php artisan config:clear
+sudo chown -R www-data:www-data "$PANEL_PATH"
+sudo chown -R www-data:www-data "$PANEL_PATH/storage/app/stratus"
 
 echo -e "\n${COLOR_GREEN}Stratus Full-Stack Installation Complete!${COLOR_NC}"
 echo "1. The Orchestrator is ready to run (java -jar stratus-orchestrator.jar)."

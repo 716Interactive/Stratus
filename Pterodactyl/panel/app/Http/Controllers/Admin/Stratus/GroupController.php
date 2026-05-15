@@ -17,7 +17,7 @@ class GroupController extends Controller
 
     public function index()
     {
-        $groups = $this->api->getGroups();
+        $groups = $this->api->getGroups() ?? [];
         return view('admin.stratus.groups.index', ['groups' => $groups]);
     }
 

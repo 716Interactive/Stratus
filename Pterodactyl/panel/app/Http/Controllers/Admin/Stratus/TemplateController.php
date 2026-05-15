@@ -17,7 +17,7 @@ class TemplateController extends Controller
 
     public function index()
     {
-        $templates = $this->api->getTemplates();
+        $templates = $this->api->getTemplates() ?? [];
         return view('admin.stratus.templates.index', ['templates' => $templates]);
     }
 

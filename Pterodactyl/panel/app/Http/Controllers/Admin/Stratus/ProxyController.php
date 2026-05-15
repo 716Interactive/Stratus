@@ -17,7 +17,7 @@ class ProxyController extends Controller
 
     public function index()
     {
-        $proxies = $this->api->get('/proxies');
+        $proxies = $this->api->get('/proxies') ?? [];
         return view('admin.stratus.proxies.index', ['proxies' => $proxies]);
     }
 
