@@ -68,16 +68,16 @@ echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
 echo -e "\n${COLOR_BLUE}--- Building Stratus Plugins ---${COLOR_NC}"
 if [ -f "./gradlew" ]; then
     chmod +x ./gradlew
-    echo "Starting Gradle build..."
-    if ./gradlew :stratus-plugin:build -x test --no-build-cache; then
+    echo "Starting Gradle build (shadowJar)..."
+    if ./gradlew :stratus-plugin:spigot:shadowJar :stratus-plugin:velocity:shadowJar :stratus-plugin:bungeecord:shadowJar -x test --no-build-cache; then
         # Copy plugins to panel storage for auto-install onto game servers
         sudo mkdir -p "$PANEL_PATH/storage/app/stratus"
-        sudo cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
-        sudo cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar"
-        sudo cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar"
-        echo -e "${COLOR_GREEN}✔ Plugins built and placed in storage.${COLOR_NC}"
+        [ -f "stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar" ] && sudo cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar" || echo "Warning: Spigot plugin not found."
+        [ -f "stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar" ] && sudo cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar" || echo "Warning: Velocity plugin not found."
+        [ -f "stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar" ] && sudo cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar" || echo "Warning: Bungee plugin not found."
+        echo -e "${COLOR_GREEN}✔ Plugins built and placed in storage (where available).${COLOR_NC}"
     else
-        echo -e "${COLOR_RED}Error: Plugin build failed. Skipping plugin distribution (Manual install required).${COLOR_NC}"
+        echo -e "${COLOR_RED}Error: Plugin build failed. Skipping plugin distribution.${COLOR_NC}"
     fi
 else
     echo -e "${COLOR_RED}Warning: gradlew not found. Skipping plugin build.${COLOR_NC}"
