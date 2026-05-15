@@ -87,7 +87,7 @@ class StratusApiService
         return $this->get('/health');
     }
 
-    protected function get(string $endpoint, array $query = [])
+    public function get(string $endpoint, array $query = [])
     {
         try {
             $response = $this->client->get($endpoint, ['query' => $query]);
@@ -98,7 +98,7 @@ class StratusApiService
         }
     }
 
-    protected function post(string $endpoint, array $data = [])
+    public function post(string $endpoint, array $data = [])
     {
         try {
             $response = $this->client->post($endpoint, ['json' => $data]);
@@ -109,7 +109,7 @@ class StratusApiService
         }
     }
 
-    protected function put(string $endpoint, array $data = [])
+    public function put(string $endpoint, array $data = [])
     {
         try {
             $response = $this->client->put($endpoint, ['json' => $data]);
