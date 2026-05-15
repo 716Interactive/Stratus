@@ -14,6 +14,12 @@ data class CreateTemplateRequest(val name: String)
 @Serializable
 data class CreateVersionRequest(val eggId: Int, val config: String)
 
+@Serializable
+data class TemplateResponse(
+    val template: com.slamstudios.stratus.services.Template,
+    val versions: List<com.slamstudios.stratus.services.TemplateVersion>
+)
+
 fun Route.templateRoutes() {
     route("/templates") {
         get {
@@ -29,7 +35,7 @@ fun Route.templateRoutes() {
             val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
             val template = TemplateService.getById(id) ?: return@get call.respond(HttpStatusCode.NotFound)
             val versions = TemplateService.getVersions(id)
-            call.respond(mapOf("template" to template, "versions" to versions))
+            call.respond(TemplateResponse(template, versions))
         }
 
         post("/{id}/versions") {
