@@ -1,31 +1,94 @@
 package com.slamstudios.stratus.services
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import kotlinx.serialization.Serializable
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.slf4j.LoggerFactory
+
+@Serializable
+data class FileEntry(
+    val name: String,
+    val size: Long,
+    val isFile: Boolean,
+    val isDirectory: Boolean,
+    val isEditable: Boolean,
+    val mimetype: String,
+    val modifiedAt: String
+)
 
 object FileService {
     private val logger = LoggerFactory.getLogger(FileService::class.java)
-    private val client = HttpClient()
+    private val dateTimeFormatter = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
 
-    suspend fun listFiles(nodeId: String, path: String): String? {
-        val node = NodeService.getById(nodeId) ?: return null
-        val wingsUrl = "https://${node.host}:8080" // Assuming standard Wings port
+    fun listFiles(basePath: String, subPath: String): List<FileEntry> {
+        val safePath = subPath.trimStart('/')
+        val root = File(basePath, safePath).canonicalFile
         
-        return try {
-            val response = client.get("$wingsUrl/api/servers/templates/files/list") {
-                header("Authorization", "Bearer ${node.token}") // We need a way to get node token
-                parameter("directory", path)
+        // Security check: Ensure we stay within the template directory
+        val baseDir = File(basePath).canonicalFile
+        if (!root.absolutePath.startsWith(baseDir.absolutePath)) {
+            logger.warn("Security alert: Attempted path escape to $root")
+            return emptyList()
+        }
+
+        if (!root.exists()) {
+            root.mkdirs()
+        }
+        
+        return root.listFiles()?.map { file ->
+            val attrs = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
+            FileEntry(
+                name = file.name,
+                size = attrs.size(),
+                isFile = attrs.isRegularFile,
+                isDirectory = attrs.isDirectory,
+                isEditable = isEditable(file),
+                mimetype = probeContentType(file),
+                modifiedAt = dateTimeFormatter.format(attrs.lastModifiedTime().toInstant())
+            )
+        } ?: emptyList()
+    }
+
+    private fun isEditable(file: File): Boolean {
+        if (!file.isFile) return false
+        val ext = file.extension.lowercase()
+        return listOf("txt", "yml", "yaml", "json", "conf", "config", "sh", "properties", "xml", "log").contains(ext)
+    }
+
+    private fun probeContentType(file: File): String {
+        return Files.probeContentType(file.toPath()) ?: "application/octet-stream"
+    }
+
+    fun getFileContents(basePath: String, subPath: String): String {
+        val file = File(basePath, subPath.trimStart('/')).canonicalFile
+        validatePath(basePath, file)
+        return file.readText()
+    }
+
+    fun writeFileContents(basePath: String, subPath: String, content: String) {
+        val file = File(basePath, subPath.trimStart('/')).canonicalFile
+        validatePath(basePath, file)
+        file.parentFile.mkdirs()
+        file.writeText(content)
+    }
+
+    fun deleteFiles(basePath: String, subPaths: List<String>) {
+        subPaths.forEach { subPath ->
+            val file = File(basePath, subPath.trimStart('/')).canonicalFile
+            validatePath(basePath, file)
+            if (file.exists()) {
+                file.deleteRecursively()
             }
-            response.bodyAsText()
-        } catch (e: Exception) {
-            logger.error("Failed to list files on node $nodeId: ${e.message}")
-            null
         }
     }
-    
-    // Additional methods for read, write, delete would go here
+
+    private fun validatePath(basePath: String, target: File) {
+        val baseDir = File(basePath).canonicalFile
+        if (!target.absolutePath.startsWith(baseDir.absolutePath)) {
+            throw SecurityException("Illegal file access: $target")
+        }
+    }
 }
