@@ -4,6 +4,7 @@ namespace Pterodactyl\Http\Controllers\Admin\Stratus;
 
 use Pterodactyl\Http\Controllers\Controller;
 use Pterodactyl\Services\Stratus\StratusApiService;
+use Illuminate\Http\Request;
 
 class GroupController extends Controller
 {

@@ -2,9 +2,9 @@
 
 namespace Pterodactyl\Http\Controllers\Admin\Stratus;
 
-import Pterodactyl\Http\Controllers\Controller;
-import Illuminate\Http\Request;
-import Pterodactyl\Services\Stratus\StratusApiService;
+use Pterodactyl\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Pterodactyl\Services\Stratus\StratusApiService;
 
 class ProxyController extends Controller
 {
