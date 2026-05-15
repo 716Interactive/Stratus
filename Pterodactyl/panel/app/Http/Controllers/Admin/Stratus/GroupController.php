@@ -28,8 +28,8 @@ class GroupController extends Controller
             return redirect()->route('admin.stratus.groups')->withErrors('Group not found.');
         }
 
-        $servers = $this->api->getServers(['groupId' => $group]);
-        $templates = $this->api->getTemplates();
+        $servers = $this->api->getServers(['groupId' => $group]) ?? [];
+        $templates = $this->api->getTemplates() ?? [];
 
         return view('admin.stratus.groups.view', [
             'group' => $groupData,
@@ -40,8 +40,8 @@ class GroupController extends Controller
 
     public function create()
     {
-        $templates = $this->api->getTemplates();
-        $nodes = $this->api->get('/nodes'); // We need an endpoint for this
+        $templates = $this->api->getTemplates() ?? [];
+        $nodes = $this->api->get('/nodes') ?? []; // We need an endpoint for this
         return view('admin.stratus.groups.new', [
             'templates' => $templates,
             'nodes' => $nodes,
