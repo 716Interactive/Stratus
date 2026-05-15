@@ -29,11 +29,13 @@ echo -e "${COLOR_GREEN}✔ Pterodactyl installation detected.${COLOR_NC}"
 
 # 2. Configuration
 echo -e "\n${COLOR_BLUE}--- Configuration ---${COLOR_NC}"
-read -p "Enter Stratus Orchestrator URL (e.g., http://1.2.3.4:8081): " STRATUS_URL
+read -p "Enter Stratus Orchestrator URL [http://localhost:8081]: " STRATUS_URL
+STRATUS_URL=${STRATUS_URL:-http://localhost:8081}
+
 read -p "Enter Stratus API Token: " STRATUS_TOKEN
 
-if [ -z "$STRATUS_URL" ] || [ -z "$STRATUS_TOKEN" ]; then
-    echo -e "${COLOR_RED}Error: URL and Token cannot be empty.${COLOR_NC}"
+if [ -z "$STRATUS_TOKEN" ]; then
+    echo -e "${COLOR_RED}Error: API Token cannot be empty.${COLOR_NC}"
     exit 1
 fi
 
@@ -81,17 +83,21 @@ fi
 # 4. Updating .env
 echo -e "\n${COLOR_BLUE}--- Updating Environment Variables ---${COLOR_NC}"
 
-if grep -q "STRATUS_URL" "$PANEL_PATH/.env"; then
-    sudo sed -i "s|STRATUS_URL=.*|STRATUS_URL=$STRATUS_URL|" "$PANEL_PATH/.env"
+echo -e "Writing configuration to $PANEL_PATH/.env..."
+
+if sudo grep -q "^STRATUS_URL=" "$PANEL_PATH/.env"; then
+    sudo sed -i "s|^STRATUS_URL=.*|STRATUS_URL=$STRATUS_URL|" "$PANEL_PATH/.env"
 else
     echo -e "\nSTRATUS_URL=$STRATUS_URL" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
 fi
 
-if grep -q "STRATUS_TOKEN" "$PANEL_PATH/.env"; then
-    sudo sed -i "s|STRATUS_TOKEN=.*|STRATUS_TOKEN=$STRATUS_TOKEN|" "$PANEL_PATH/.env"
+if sudo grep -q "^STRATUS_TOKEN=" "$PANEL_PATH/.env"; then
+    sudo sed -i "s|^STRATUS_TOKEN=.*|STRATUS_TOKEN=$STRATUS_TOKEN|" "$PANEL_PATH/.env"
 else
     echo -e "STRATUS_TOKEN=$STRATUS_TOKEN" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
 fi
+
+echo -e "✔ STRATUS_URL is now: $STRATUS_URL"
 
 echo -e "${COLOR_GREEN}✔ .env updated.${COLOR_NC}"
 
