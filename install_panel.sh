@@ -58,6 +58,7 @@ cp -rv Pterodactyl/panel/resources/views/admin/stratus/* "$PANEL_PATH/resources/
 cp -rv Pterodactyl/panel/resources/scripts/* "$PANEL_PATH/resources/scripts/"
 cp -v Pterodactyl/panel/app/Providers/EventServiceProvider.php "$PANEL_PATH/app/Providers/"
 cp -v Pterodactyl/panel/routes/admin.php "$PANEL_PATH/routes/"
+cp -v Pterodactyl/panel/resources/views/layouts/admin.blade.php "$PANEL_PATH/resources/views/layouts/"
 
 echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
 
