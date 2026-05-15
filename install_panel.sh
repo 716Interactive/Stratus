@@ -83,23 +83,30 @@ fi
 # 4. Updating .env
 echo -e "\n${COLOR_BLUE}--- Updating Environment Variables ---${COLOR_NC}"
 
+if [ ! -f "$PANEL_PATH/.env" ]; then
+    echo -e "${COLOR_RED}Error: .env file not found at $PANEL_PATH/.env${COLOR_NC}"
+    exit 1
+fi
+
 echo -e "Writing configuration to $PANEL_PATH/.env..."
 
+# Update URL
 if sudo grep -q "^STRATUS_URL=" "$PANEL_PATH/.env"; then
     sudo sed -i "s|^STRATUS_URL=.*|STRATUS_URL=$STRATUS_URL|" "$PANEL_PATH/.env"
 else
-    echo -e "\nSTRATUS_URL=$STRATUS_URL" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
+    echo "STRATUS_URL=$STRATUS_URL" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
 fi
 
+# Update Token
 if sudo grep -q "^STRATUS_TOKEN=" "$PANEL_PATH/.env"; then
     sudo sed -i "s|^STRATUS_TOKEN=.*|STRATUS_TOKEN=$STRATUS_TOKEN|" "$PANEL_PATH/.env"
 else
-    echo -e "STRATUS_TOKEN=$STRATUS_TOKEN" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
+    echo "STRATUS_TOKEN=$STRATUS_TOKEN" | sudo tee -a "$PANEL_PATH/.env" > /dev/null
 fi
 
-echo -e "✔ STRATUS_URL is now: $STRATUS_URL"
-
 echo -e "${COLOR_GREEN}✔ .env updated.${COLOR_NC}"
+echo -e "Current Stratus settings in .env:"
+sudo grep "STRATUS_" "$PANEL_PATH/.env"
 
 # 5. Client-side Assets (React)
 echo -e "\n${COLOR_BLUE}--- Building Client Assets ---${COLOR_NC}"
