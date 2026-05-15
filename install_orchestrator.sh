@@ -61,6 +61,7 @@ cat <<EOT > config.yml
 # Stratus Orchestrator Configuration
 # Generated on $(date)
 
+port: 8081
 token: "$STRATUS_TOKEN"
 
 database:

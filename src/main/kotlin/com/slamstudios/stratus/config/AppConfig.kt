@@ -13,6 +13,7 @@ import java.io.FileInputStream
  * 3. application.conf (Ktor defaults)
  */
 data class AppConfig(
+    val port: Int,
     val token: String,
     val database: DatabaseConfig,
     val redis: RedisConfig,
@@ -69,8 +70,10 @@ data class AppConfig(
             val dbPass = getProp("stratus.database.password", "database.password") ?: "changeme"
             
             log.info("Database Configuration: host=$dbHost, user=$dbUser")
+            val serverPort = getProp("ktor.deployment.port", "port")?.toInt() ?: 8081
 
             return AppConfig(
+                port = serverPort,
                 token = getProp("stratus.token", "token") ?: "changeme",
                 database = DatabaseConfig(
                     host     = dbHost,

@@ -14,7 +14,32 @@ import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.defaultheaders.*
 import org.slf4j.event.Level
 
-fun main(args: Array<String>) = EngineMain.main(args)
+import org.yaml.snakeyaml.Yaml
+import java.io.File
+import java.io.FileInputStream
+
+fun main(args: Array<String>) {
+    // Priority: /etc/stratus/config.yml > config.yml
+    val yamlFile = listOf(
+        File("/etc/stratus/config.yml"),
+        File("config.yml")
+    ).firstOrNull { it.exists() }
+
+    if (yamlFile != null) {
+        try {
+            val yamlData = Yaml().load<Map<String, Any>>(FileInputStream(yamlFile)) ?: emptyMap()
+            val port = yamlData["port"]?.toString()?.toIntOrNull()
+            if (port != null) {
+                // Inject into system properties so EngineMain picks it up via HOCON ${?PORT} or direct property
+                System.setProperty("PORT", port.toString())
+                System.setProperty("ktor.deployment.port", port.toString())
+            }
+        } catch (e: Exception) {
+            System.err.println("[Stratus] Failed to pre-parse YAML port: ${e.message}")
+        }
+    }
+    EngineMain.main(args)
+}
 
 fun Application.module() {
     println("[Stratus] --- Starting Stratus Orchestrator v1.0.1 ---")
