@@ -68,14 +68,17 @@ echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
 echo -e "\n${COLOR_BLUE}--- Building Stratus Plugins ---${COLOR_NC}"
 if [ -f "./gradlew" ]; then
     chmod +x ./gradlew
-    # Only build the plugins, not the whole orchestrator
-    ./gradlew :stratus-plugin:build -x test --no-build-cache
-    
-    # Copy plugins to panel storage for auto-install onto game servers
-    sudo cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
-    sudo cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar"
-    sudo cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar"
-    echo -e "${COLOR_GREEN}✔ Plugins built and placed in storage.${COLOR_NC}"
+    echo "Starting Gradle build..."
+    if ./gradlew :stratus-plugin:build -x test --no-build-cache; then
+        # Copy plugins to panel storage for auto-install onto game servers
+        sudo mkdir -p "$PANEL_PATH/storage/app/stratus"
+        sudo cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
+        sudo cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar"
+        sudo cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar"
+        echo -e "${COLOR_GREEN}✔ Plugins built and placed in storage.${COLOR_NC}"
+    else
+        echo -e "${COLOR_RED}Error: Plugin build failed. Skipping plugin distribution (Manual install required).${COLOR_NC}"
+    fi
 else
     echo -e "${COLOR_RED}Warning: gradlew not found. Skipping plugin build.${COLOR_NC}"
 fi
@@ -89,6 +92,7 @@ if [ ! -f "$PANEL_PATH/.env" ]; then
 fi
 
 echo -e "Writing configuration to $PANEL_PATH/.env..."
+echo "Target URL: $STRATUS_URL"
 
 # Update URL
 if sudo grep -q "^STRATUS_URL=" "$PANEL_PATH/.env"; then
@@ -112,8 +116,9 @@ sudo grep "STRATUS_" "$PANEL_PATH/.env"
 echo -e "\n${COLOR_BLUE}--- Building Client Assets ---${COLOR_NC}"
 cd "$PANEL_PATH"
 if [ -f "package.json" ]; then
-    yarn build:production || npm run build:production
-    echo -e "${COLOR_GREEN}✔ Client assets built.${COLOR_NC}"
+    echo "Running yarn/npm build..."
+    (yarn build:production || npm run build:production) || echo -e "${COLOR_RED}Warning: Asset build failed. You may need to run it manually.${COLOR_NC}"
+    echo -e "${COLOR_GREEN}✔ Client assets build step finished.${COLOR_NC}"
 fi
 
 # 6. Finalizing
