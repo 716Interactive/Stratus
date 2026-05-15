@@ -151,3 +151,14 @@ Route::group([
         Route::put('/docker-image', [Client\Servers\SettingsController::class, 'dockerImage']);
     });
 });
+
+Route::group(['prefix' => '/stratus', 'middleware' => [RequireTwoFactorAuthentication::class]], function () {
+    Route::group(['prefix' => '/templates'], function () {
+        Route::get('/', [Client\Stratus\TemplateController::class, 'index']);
+        Route::get('/{template}', [Client\Stratus\TemplateController::class, 'view']);
+        Route::get('/{template}/files/list', [Client\Stratus\TemplateFileController::class, 'list']);
+        Route::get('/{template}/files/contents', [Client\Stratus\TemplateFileController::class, 'contents']);
+        Route::post('/{template}/files/write', [Client\Stratus\TemplateFileController::class, 'write']);
+        Route::post('/{template}/files/delete', [Client\Stratus\TemplateFileController::class, 'delete']);
+    });
+});

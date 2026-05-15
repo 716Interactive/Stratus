@@ -10,6 +10,7 @@ import Spinner from '@/components/elements/Spinner';
 import routes from '@/routers/routes';
 import GroupContainer from '@/components/stratus/GroupContainer';
 import TemplateContainer from '@/components/stratus/TemplateContainer';
+import TemplateFileContainer from '@/components/stratus/templates/files/TemplateFileContainer';
 
 export default () => {
     const location = useLocation();
@@ -41,6 +42,9 @@ export default () => {
                         </Route>
                         <Route path={'/stratus/templates'} exact>
                             <TemplateContainer />
+                        </Route>
+                        <Route path={'/stratus/templates/:id/files'} exact>
+                            <TemplateFileContainer />
                         </Route>
                         {routes.account.map(({ path, component: Component }) => (
                             <Route key={path} path={`/account/${path}`.replace('//', '/')} exact>

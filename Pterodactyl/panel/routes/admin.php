@@ -252,6 +252,13 @@ Route::group(['prefix' => 'stratus'], function () {
         Route::post('/new', [Admin\Stratus\TemplateController::class, 'store']);
         Route::get('/view/{template}', [Admin\Stratus\TemplateController::class, 'view'])->name('admin.stratus.templates.view');
         Route::post('/view/{template}/versions', [Admin\Stratus\TemplateController::class, 'storeVersion']);
+        
+        Route::group(['prefix' => 'view/{template}/files'], function () {
+            Route::get('/list', [Admin\Stratus\TemplateFileController::class, 'list'])->name('admin.stratus.templates.files.list');
+            Route::get('/contents', [Admin\Stratus\TemplateFileController::class, 'contents'])->name('admin.stratus.templates.files.contents');
+            Route::post('/write', [Admin\Stratus\TemplateFileController::class, 'write'])->name('admin.stratus.templates.files.write');
+            Route::post('/delete', [Admin\Stratus\TemplateFileController::class, 'delete'])->name('admin.stratus.templates.files.delete');
+        });
     });
 
     Route::group(['prefix' => 'proxies'], function () {
