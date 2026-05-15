@@ -93,7 +93,7 @@ BUILD_NOW=${BUILD_NOW:-y}
 if [[ $BUILD_NOW =~ ^[Yy]$ ]]; then
     echo -e "${COLOR_BLUE}Running Gradle build (this may take a few minutes)...${COLOR_NC}"
     chmod +x gradlew
-    ./gradlew shadowJar :stratus-plugin:build -x test
+    ./gradlew shadowJar :stratus-plugin:build -x test --no-build-cache
     echo -e "${COLOR_GREEN}✔ Build successful! Artifacts generated in build/libs folders.${COLOR_NC}"
 else
     echo -e "${COLOR_RED}Build skipped. You will need to build manually before running.${COLOR_NC}"

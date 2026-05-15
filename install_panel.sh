@@ -62,19 +62,20 @@ cp -v Pterodactyl/panel/resources/views/layouts/admin.blade.php "$PANEL_PATH/res
 
 echo -e "${COLOR_GREEN}✔ Files copied.${COLOR_NC}"
 
-# 3.1 Build Orchestrator and Plugins
-echo -e "\n${COLOR_BLUE}--- Building Stratus Components ---${COLOR_NC}"
+# 3.1 Build Plugins for Distribution
+echo -e "\n${COLOR_BLUE}--- Building Stratus Plugins ---${COLOR_NC}"
 if [ -f "./gradlew" ]; then
     chmod +x ./gradlew
-    ./gradlew shadowJar :stratus-plugin:build -x test --no-build-cache
-    cp -v build/libs/stratus-orchestrator-all.jar ./stratus-orchestrator.jar
-    # Copy plugin to panel storage for auto-install
+    # Only build the plugins, not the whole orchestrator
+    ./gradlew :stratus-plugin:build -x test --no-build-cache
+    
+    # Copy plugins to panel storage for auto-install onto game servers
     cp -v stratus-plugin/spigot/build/libs/stratus-plugin-spigot-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginSpigot.jar"
     cp -v stratus-plugin/velocity/build/libs/stratus-plugin-velocity-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginVelocity.jar"
     cp -v stratus-plugin/bungeecord/build/libs/stratus-plugin-bungeecord-all.jar "$PANEL_PATH/storage/app/stratus/StratusPluginBungee.jar"
-    echo -e "${COLOR_GREEN}✔ Components built and placed.${COLOR_NC}"
+    echo -e "${COLOR_GREEN}✔ Plugins built and placed in storage.${COLOR_NC}"
 else
-    echo -e "${COLOR_RED}Warning: gradlew not found. Skipping build. Make sure you have built the JARs manually.${COLOR_NC}"
+    echo -e "${COLOR_RED}Warning: gradlew not found. Skipping plugin build.${COLOR_NC}"
 fi
 
 # 4. Updating .env
