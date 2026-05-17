@@ -9,7 +9,7 @@ import TemplateFileContainer from '@/components/stratus/templates/files/Template
 import TemplateFileEditContainer from '@/components/stratus/templates/files/TemplateFileEditContainer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolderOpen, faTerminal, faKey, faSave, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import FlashMessageRender from '@/components/elements/FlashMessageRender';
+import FlashMessageRender from '@/components/FlashMessageRender';
 import useFlash from '@/plugins/useFlash';
 
 interface PteroTemplateConfig {

@@ -7,7 +7,7 @@ import Spinner from '@/components/elements/Spinner';
 import SubNavigation from '@/components/elements/SubNavigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faServer, faCogs, faSave, faNetworkWired, faArrowAltCircleUp } from '@fortawesome/free-solid-svg-icons';
-import FlashMessageRender from '@/components/elements/FlashMessageRender';
+import FlashMessageRender from '@/components/FlashMessageRender';
 import useFlash from '@/plugins/useFlash';
 import { format } from 'date-fns';
 
