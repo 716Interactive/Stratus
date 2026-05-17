@@ -18,6 +18,10 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.kapt")
     
+    if (name != "common") {
+        apply(plugin = "com.gradleup.shadow")
+    }
+    
     kotlin {
         jvmToolchain(17)
     }
