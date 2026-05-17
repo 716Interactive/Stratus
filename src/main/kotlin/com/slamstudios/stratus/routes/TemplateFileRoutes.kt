@@ -7,7 +7,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.http.content.forEachPart
-import kotlinx.io.asInputStream
+import io.ktor.utils.io.jvm.javaio.toInputStream
 
 fun Route.templateFileRoutes() {
     route("/templates/{id}/files") {
@@ -56,7 +56,7 @@ fun Route.templateFileRoutes() {
             multipart.forEachPart { part ->
                 if (part is io.ktor.http.content.PartData.FileItem) {
                     val fileName = part.originalFileName ?: "file"
-                    part.provider().asInputStream().use { input ->
+                    part.provider().toInputStream().use { input ->
                         if (extract && fileName.endsWith(".zip", ignoreCase = true)) {
                             FileService.extractZip(template.localPath, directory, input)
                         } else {
