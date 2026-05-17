@@ -7,6 +7,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 @Serializable
 data class CreateTemplateRequest(val name: String, val ownerId: Int = 1)
@@ -38,6 +39,40 @@ fun Route.templateRoutes() {
             call.respond(TemplateResponse(template, versions))
         }
 
+        put("/{id}") {
+            val id = call.parameters["id"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+            val req = call.receive<UpdateTemplateRequest>()
+            
+            if (req.name != null) {
+                TemplateService.updateTemplateName(id, req.name)
+            }
+            
+            val latestVersion = TemplateService.getVersions(id).firstOrNull()
+            val currentEggId = req.eggId ?: latestVersion?.eggId ?: 1
+            
+            val currentConfig = latestVersion?.configJson?.let {
+                try {
+                    Json.decodeFromString<com.slamstudios.stratus.services.PteroTemplateConfig>(it)
+                } catch (e: Exception) {
+                    com.slamstudios.stratus.services.PteroTemplateConfig()
+                }
+            } ?: com.slamstudios.stratus.services.PteroTemplateConfig()
+            
+            val newConfig = currentConfig.copy(
+                memory = req.memory ?: currentConfig.memory,
+                disk = req.disk ?: currentConfig.disk,
+                cpu = req.cpu ?: currentConfig.cpu,
+                startup = req.startup ?: currentConfig.startup,
+                image = req.image ?: currentConfig.image,
+                env = req.environment ?: currentConfig.env
+            )
+            
+            val newConfigJson = Json.encodeToString(com.slamstudios.stratus.services.PteroTemplateConfig.serializer(), newConfig)
+            TemplateService.createVersion(id, currentEggId, newConfigJson)
+            
+            call.respond(mapOf("ok" to true))
+        }
+
         post("/{id}/versions") {
             val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
             val req = call.receive<CreateVersionRequest>()
@@ -45,3 +80,15 @@ fun Route.templateRoutes() {
         }
     }
 }
+
+@Serializable
+data class UpdateTemplateRequest(
+    val name: String? = null,
+    val eggId: Int? = null,
+    val memory: Int? = null,
+    val disk: Int? = null,
+    val cpu: Int? = null,
+    val startup: String? = null,
+    val image: String? = null,
+    val environment: Map<String, String>? = null
+)

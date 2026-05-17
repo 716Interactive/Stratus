@@ -10,8 +10,8 @@ import Spinner from '@/components/elements/Spinner';
 import routes from '@/routers/routes';
 import GroupContainer from '@/components/stratus/GroupContainer';
 import TemplateContainer from '@/components/stratus/TemplateContainer';
-import TemplateFileContainer from '@/components/stratus/templates/files/TemplateFileContainer';
-import TemplateFileEditContainer from '@/components/stratus/templates/files/TemplateFileEditContainer';
+import TemplateDetailContainer from '@/components/stratus/templates/TemplateDetailContainer';
+import GroupDetailContainer from '@/components/stratus/GroupDetailContainer';
 
 export default () => {
     const location = useLocation();
@@ -41,14 +41,26 @@ export default () => {
                         <Route path={'/stratus/groups'} exact>
                             <GroupContainer />
                         </Route>
+                        <Route path={'/stratus/groups/:id'} exact>
+                            <GroupDetailContainer />
+                        </Route>
+                        <Route path={'/stratus/groups/:id/settings'} exact>
+                            <GroupDetailContainer />
+                        </Route>
                         <Route path={'/stratus/templates'} exact>
                             <TemplateContainer />
                         </Route>
-                        <Route path={'/stratus/templates/:id/files'} exact>
-                            <TemplateFileContainer />
+                        <Route path={'/stratus/templates/:id'} exact>
+                            <TemplateDetailContainer />
+                        </Route>
+                        <Route path={'/stratus/templates/:id/sftp'} exact>
+                            <TemplateDetailContainer />
+                        </Route>
+                        <Route path={'/stratus/templates/:id/settings'} exact>
+                            <TemplateDetailContainer />
                         </Route>
                         <Route path={'/stratus/templates/:id/files/:action(new|edit)'} exact>
-                            <TemplateFileEditContainer />
+                            <TemplateDetailContainer />
                         </Route>
                         {routes.account.map(({ path, component: Component }) => (
                             <Route key={path} path={`/account/${path}`.replace('//', '/')} exact>

@@ -82,6 +82,12 @@ object TemplateService {
         TemplateVersion(id, templateId, nextVersion, eggId, configJson, LocalDateTime.now().toString())
     }
 
+    fun updateTemplateName(id: String, name: String) = transaction {
+        Templates.update({ Templates.id eq id }) {
+            it[Templates.name] = name
+        }
+    }
+
     private fun ResultRow.toTemplate() = Template(
         id = this[Templates.id],
         name = this[Templates.name],

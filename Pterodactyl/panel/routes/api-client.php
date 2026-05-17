@@ -156,10 +156,19 @@ Route::group(['prefix' => '/stratus', 'middleware' => [RequireTwoFactorAuthentic
     Route::group(['prefix' => '/templates'], function () {
         Route::get('/', [Client\Stratus\TemplateController::class, 'index']);
         Route::get('/{template}', [Client\Stratus\TemplateController::class, 'view']);
+        Route::put('/{template}', [Client\Stratus\TemplateController::class, 'update']);
         Route::get('/{template}/files/list', [Client\Stratus\TemplateFileController::class, 'list']);
         Route::get('/{template}/files/contents', [Client\Stratus\TemplateFileController::class, 'contents']);
         Route::post('/{template}/files/write', [Client\Stratus\TemplateFileController::class, 'write']);
         Route::post('/{template}/files/delete', [Client\Stratus\TemplateFileController::class, 'delete']);
         Route::post('/{template}/files/upload', [Client\Stratus\TemplateFileController::class, 'upload']);
     });
+
+    Route::group(['prefix' => '/groups'], function () {
+        Route::get('/', [Client\Stratus\GroupController::class, 'index']);
+        Route::get('/{group}', [Client\Stratus\GroupController::class, 'view']);
+        Route::put('/{group}', [Client\Stratus\GroupController::class, 'update']);
+    });
+
+    Route::get('/servers', [Client\Stratus\ServerController::class, 'index']);
 });
