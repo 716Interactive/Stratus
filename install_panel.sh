@@ -122,7 +122,7 @@ cd "$PANEL_PATH"
 if ! command -v yarn &> /dev/null && ! command -v npm &> /dev/null; then
     echo -e "${COLOR_RED}Node.js and Yarn are not installed. They are required to build the custom Stratus UI.${COLOR_NC}"
     echo "Installing Node.js and Yarn automatically..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
     sudo apt-get install -y nodejs
     sudo npm install -g yarn
     echo -e "${COLOR_GREEN}✔ Node.js and Yarn installed.${COLOR_NC}"
@@ -130,7 +130,7 @@ fi
 
 if [ -f "package.json" ]; then
     echo "Installing node modules (this may take a minute)..."
-    yarn install || npm install
+    yarn install || npm install --legacy-peer-deps
     echo "Running yarn/npm build..."
     (yarn build:production || npm run build:production) || echo -e "${COLOR_RED}Warning: Asset build failed. You may need to run it manually.${COLOR_NC}"
     echo -e "${COLOR_GREEN}✔ Client assets build step finished.${COLOR_NC}"
