@@ -9,6 +9,7 @@ import java.util.*
 import java.util.concurrent.Executors
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.Serializable
+import java.io.File
 
 @Serializable
 data class PteroTemplateConfig(
@@ -233,6 +234,53 @@ object OrchestratorService {
                 memory = templateConfig.memory,
                 disk = templateConfig.disk
             )
+
+            // Asynchronously wait for Pterodactyl server to install, then synchronize files, then start the server
+            scope.launch {
+                logger.info("Server ${pteroServer.name} (Ptero ID: ${pteroServer.id}) created. Waiting for installation...")
+                // Poll for installation status (up to 5 minutes)
+                var installed = false
+                val startPoll = LocalDateTime.now()
+                while (!installed && LocalDateTime.now().isBefore(startPoll.plusMinutes(5))) {
+                    delay(5000)
+                    if (PterodactylService.isServerInstalled(pteroServer.id)) {
+                        installed = true
+                    }
+                }
+                
+                if (installed) {
+                    logger.info("Server ${pteroServer.name} is installed. Killing server to guarantee it is offline before cloning files...")
+                    PterodactylService.sendPowerSignal(pteroServer.identifier, "kill")
+                    delay(2000) // Allow time to process signal
+                    
+                    // Clear & clone the template files locally
+                    val templateDir = File(template.localPath, template.id)
+                    val volumeDir = File("/var/lib/pterodactyl/volumes/${pteroServer.uuid}")
+                    
+                    try {
+                        if (volumeDir.exists()) {
+                            logger.info("Synchronizing files from template directory ${templateDir.absolutePath} to ${volumeDir.absolutePath}...")
+                            volumeDir.deleteRecursively()
+                            volumeDir.mkdirs()
+                            if (templateDir.exists()) {
+                                templateDir.copyRecursively(volumeDir, overwrite = true)
+                                logger.info("Template files synchronized successfully for ${pteroServer.name}.")
+                            } else {
+                                logger.warn("Template directory ${templateDir.absolutePath} does not exist. Starting server with default files.")
+                            }
+                        } else {
+                            logger.error("Pterodactyl server volume not found at ${volumeDir.absolutePath}. Cannot clone template files locally.")
+                        }
+                    } catch (e: Exception) {
+                        logger.error("Error synchronizing files for ${pteroServer.name}: ${e.message}", e)
+                    }
+                    
+                    logger.info("Starting server ${pteroServer.name} (Identifier: ${pteroServer.identifier}) via Pterodactyl API...")
+                    PterodactylService.sendPowerSignal(pteroServer.identifier, "start")
+                } else {
+                    logger.error("Server ${pteroServer.name} failed to install within 5 minutes. Skipping file synchronization.")
+                }
+            }
         } else {
             logger.error("Failed to provision Pterodactyl server for group ${group.name}")
         }

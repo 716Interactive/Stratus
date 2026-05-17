@@ -18,6 +18,7 @@ object Proxies : Table("proxies") {
     val proxyGroupId = varchar("proxy_group_id", 36).references(ProxyGroups.id).nullable()
     val isMain = bool("is_main").default(false)
     val isStatic = bool("is_static").default(true)
+    val token = varchar("token", 255).default("")
     val lastHeartbeat = datetime("last_heartbeat").nullable()
     override val primaryKey = PrimaryKey(id)
 }

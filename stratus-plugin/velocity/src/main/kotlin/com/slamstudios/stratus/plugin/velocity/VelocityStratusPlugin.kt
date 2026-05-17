@@ -14,9 +14,15 @@ import java.net.InetSocketAddress
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
 
+import java.nio.file.Path
+import com.velocitypowered.api.plugin.annotation.DataDirectory
+import java.io.File
+import java.util.UUID
+
 @Plugin(id = "stratus", name = "Stratus", version = "1.0", authors = ["SlamTheHam"])
 class VelocityStratusPlugin @Inject constructor(
-    private val server: ProxyServer
+    private val server: ProxyServer,
+    @DataDirectory private val dataDirectory: Path
 ) : StratusPluginBase() {
 
     @Subscribe
@@ -25,6 +31,51 @@ class VelocityStratusPlugin @Inject constructor(
         
         // Start Redis listener for dynamic server registration
         startRedisListener()
+        
+        // Dynamically register proxy with its generated token
+        registerProxyInstance()
+    }
+
+    private fun registerProxyInstance() {
+        scope.launch {
+            delay(3000) // Allow Ktor API client to initialize
+            try {
+                val dir = dataDirectory.toFile()
+                if (!dir.exists()) dir.mkdirs()
+                
+                val configFile = File(dir, "config.yml")
+                var token = ""
+                
+                if (configFile.exists()) {
+                    val lines = configFile.readLines()
+                    val tokenLine = lines.find { it.startsWith("token:") }
+                    if (tokenLine != null) {
+                        token = tokenLine.substringAfter("token:").trim().replace("\"", "").replace("'", "")
+                    }
+                }
+                
+                if (token.isBlank()) {
+                    token = UUID.randomUUID().toString().replace("-", "")
+                    configFile.writeText("token: \"$token\"\n")
+                    logger.info("Generated new secure proxy token: $token")
+                } else {
+                    logger.info("Loaded existing proxy token from config.")
+                }
+                
+                val address = server.boundAddress
+                val host = address?.hostString ?: System.getenv("PROXY_HOST") ?: "127.0.0.1"
+                val port = address?.port ?: System.getenv("PROXY_PORT")?.toInt() ?: 25577
+                
+                val registered = api?.registerProxy("Velocity", host, port, true, token)
+                if (registered == true) {
+                    logger.info("Successfully registered Velocity proxy ($host:$port) with token in Orchestrator.")
+                } else {
+                    logger.warn("Orchestrator proxy registration failed. Using standalone mode.")
+                }
+            } catch (e: Exception) {
+                logger.error("Error during Velocity proxy auto-registration: ${e.message}")
+            }
+        }
     }
 
     private fun startRedisListener() {

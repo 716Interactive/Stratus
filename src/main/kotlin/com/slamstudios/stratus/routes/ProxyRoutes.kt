@@ -14,7 +14,8 @@ data class CreateProxyRequest(
     val host: String,
     val port: Int,
     val proxyGroupId: String? = null,
-    val isMain: Boolean = false
+    val isMain: Boolean = false,
+    val token: String = ""
 )
 
 fun Route.proxyRoutes() {
@@ -35,7 +36,8 @@ fun Route.proxyRoutes() {
                 host = req.host,
                 port = req.port,
                 groupId = req.proxyGroupId,
-                isMain = req.isMain
+                isMain = req.isMain,
+                token = req.token
             )
             call.respond(proxy)
         }

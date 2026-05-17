@@ -12,8 +12,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
 @Serializable
@@ -93,6 +92,36 @@ object PterodactylService {
             }
         } catch (e: Exception) {
             logger.error("Exception while deleting Pterodactyl server $pteroId", e)
+        }
+    }
+
+    suspend fun isServerInstalled(pteroId: Int): Boolean {
+        return try {
+            val response = client.get("/api/application/servers/$pteroId")
+            if (response.status == HttpStatusCode.OK) {
+                val text = response.bodyAsText()
+                val json = Json.parseToJsonElement(text).jsonObject
+                val attributes = json["attributes"]?.jsonObject
+                val status = attributes?.get("status")?.jsonPrimitive?.contentOrNull
+                status == null
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun sendPowerSignal(serverIdentifier: String, signal: String) {
+        try {
+            val response = client.post("/api/client/servers/$serverIdentifier/power") {
+                setBody(mapOf("signal" to signal))
+            }
+            if (response.status.value !in 200..299) {
+                logger.error("Failed to send power signal $signal to server $serverIdentifier: ${response.status}")
+            }
+        } catch (e: Exception) {
+            logger.error("Exception sending power signal $signal to server $serverIdentifier", e)
         }
     }
 

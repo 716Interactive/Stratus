@@ -14,7 +14,8 @@ data class ProxyInstance(
     val port: Int,
     val proxyGroupId: String?,
     val isMain: Boolean,
-    val isStatic: Boolean
+    val isStatic: Boolean,
+    val token: String
 )
 
 object ProxyService {
@@ -28,7 +29,7 @@ object ProxyService {
         Proxies.selectAll().where { Proxies.isMain eq true }.map { it.toProxyInstance() }.firstOrNull()
     }
 
-    fun registerProxy(name: String, host: String, port: Int, groupId: String? = null, isMain: Boolean = false): ProxyInstance = transaction {
+    fun registerProxy(name: String, host: String, port: Int, groupId: String? = null, isMain: Boolean = false, token: String = ""): ProxyInstance = transaction {
         if (isMain) {
             // Unset other main proxies
             Proxies.update({ Proxies.isMain eq true }) {
@@ -37,6 +38,7 @@ object ProxyService {
         }
         
         val id = UUID.randomUUID().toString()
+        val actualToken = token.ifBlank { UUID.randomUUID().toString().replace("-", "") }
         Proxies.insert {
             it[Proxies.id] = id
             it[Proxies.name] = name
@@ -44,8 +46,9 @@ object ProxyService {
             it[Proxies.port] = port
             it[Proxies.proxyGroupId] = groupId
             it[Proxies.isMain] = isMain
+            it[Proxies.token] = actualToken
         }
-        ProxyInstance(id, name, host, port, groupId, isMain, true)
+        ProxyInstance(id, name, host, port, groupId, isMain, true, actualToken)
     }
 
     private fun ResultRow.toProxyInstance() = ProxyInstance(
@@ -55,6 +58,7 @@ object ProxyService {
         port = this[Proxies.port],
         proxyGroupId = this[Proxies.proxyGroupId],
         isMain = this[Proxies.isMain],
-        isStatic = this[Proxies.isStatic]
+        isStatic = this[Proxies.isStatic],
+        token = this[Proxies.token]
     )
 }

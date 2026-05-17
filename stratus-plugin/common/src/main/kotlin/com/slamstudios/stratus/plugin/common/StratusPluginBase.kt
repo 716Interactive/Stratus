@@ -5,9 +5,9 @@ import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 
 abstract class StratusPluginBase {
-    protected val logger = LoggerFactory.getLogger(this::class.java)
-    protected val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    protected var api: com.slamstudios.stratus.api.StratusClient? = null
+    val logger = LoggerFactory.getLogger(this::class.java)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    var api: com.slamstudios.stratus.api.StratusClient? = null
 
     open fun onEnable() {
         try {

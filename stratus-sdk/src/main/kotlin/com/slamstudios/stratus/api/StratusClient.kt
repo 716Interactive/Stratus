@@ -109,11 +109,6 @@ class StratusClient(
         }
     }
 
-    /**
-     * Fetches the complete configuration and status of this server as known by the orchestrator.
-     *
-     * @return The raw JSON response from the orchestrator, or null if the request failed.
-     */
     suspend fun getSelfDetails(): String? {
         return try {
             val response = client.get("$orchestratorUrl/servers/$serverId") {
@@ -122,6 +117,43 @@ class StratusClient(
             if (response.status.isSuccess()) response.bodyAsText() else null
         } catch (e: Exception) {
             null
+        }
+    }
+
+    /**
+     * Dynamically fetches the primary proxy's security token.
+     */
+    suspend fun getProxyToken(): String? {
+        return try {
+            val response = client.get("$orchestratorUrl/servers/$serverId/proxy-token") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }
+            if (response.status.isSuccess()) response.bodyAsText().trim() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Dynamically registers a proxy instance with the Orchestrator.
+     */
+    suspend fun registerProxy(name: String, host: String, port: Int, isMain: Boolean, token: String): Boolean {
+        return try {
+            val response = client.post("$orchestratorUrl/proxies") {
+                header(HttpHeaders.Authorization, "Bearer ${this@StratusClient.token}")
+                contentType(ContentType.Application.Json)
+                setBody(mapOf(
+                    "name" to name,
+                    "host" to host,
+                    "port" to port,
+                    "isMain" to isMain,
+                    "token" to token
+                ))
+            }
+            response.status.isSuccess()
+        } catch (e: Exception) {
+            logger.error("Failed to register proxy: ${e.message}")
+            false
         }
     }
 

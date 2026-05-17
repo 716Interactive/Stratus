@@ -31,6 +31,12 @@ fun Route.serverRoutes() {
             call.respond(server)
         }
 
+        get("/{id}/proxy-token") {
+            val mainProxy = com.slamstudios.stratus.services.ProxyService.getMainProxy()
+            val tokenStr = mainProxy?.token ?: ""
+            call.respondText(tokenStr, contentType = ContentType.Text.Plain)
+        }
+
         post("/{id}/heartbeat") {
             val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
             val req = call.receive<HeartbeatRequest>()
