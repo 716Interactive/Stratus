@@ -67,4 +67,32 @@ class TemplateFileController extends ClientApiController
         
         return response()->noContent();
     }
+
+    public function upload(Request $request, $templateId)
+    {
+        $this->validateTemplateOwnership($templateId, $request->user()->id);
+        
+        if (!$request->hasFile('file')) {
+            return response()->json(['error' => 'No file uploaded'], 400);
+        }
+        
+        $file = $request->file('file');
+        $directory = $request->input('directory', '/');
+        $extract = $request->input('extract', 'false');
+        
+        $multipart = [
+            [
+                'name'     => 'file',
+                'contents' => fopen($file->getRealPath(), 'r'),
+                'filename' => $file->getClientOriginalName()
+            ]
+        ];
+        
+        $this->api->multipart("/templates/{$templateId}/files/upload", $multipart, [
+            'directory' => $directory,
+            'extract' => $extract
+        ]);
+        
+        return response()->noContent();
+    }
 }

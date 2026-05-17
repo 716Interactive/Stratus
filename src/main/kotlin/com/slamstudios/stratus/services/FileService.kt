@@ -85,6 +85,39 @@ object FileService {
         }
     }
 
+    fun saveFile(basePath: String, subPath: String, inputStream: java.io.InputStream) {
+        val file = File(basePath, subPath.trimStart('/')).canonicalFile
+        validatePath(basePath, file)
+        file.parentFile.mkdirs()
+        file.outputStream().use { output ->
+            inputStream.copyTo(output)
+        }
+    }
+
+    fun extractZip(basePath: String, subPath: String, inputStream: java.io.InputStream) {
+        val targetDir = File(basePath, subPath.trimStart('/')).canonicalFile
+        validatePath(basePath, targetDir)
+        targetDir.mkdirs()
+
+        val zipInput = java.util.zip.ZipInputStream(inputStream)
+        var entry = zipInput.nextEntry
+        while (entry != null) {
+            val file = File(targetDir, entry.name).canonicalFile
+            validatePath(basePath, file)
+            
+            if (entry.isDirectory) {
+                file.mkdirs()
+            } else {
+                file.parentFile.mkdirs()
+                file.outputStream().use { output ->
+                    zipInput.copyTo(output)
+                }
+            }
+            zipInput.closeEntry()
+            entry = zipInput.nextEntry
+        }
+    }
+
     private fun validatePath(basePath: String, target: File) {
         val baseDir = File(basePath).canonicalFile
         if (!target.absolutePath.startsWith(baseDir.absolutePath)) {

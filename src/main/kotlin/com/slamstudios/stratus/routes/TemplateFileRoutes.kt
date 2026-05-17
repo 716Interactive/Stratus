@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.http.content.forEachPart
 
 fun Route.templateFileRoutes() {
     route("/templates/{id}/files") {
@@ -42,6 +43,29 @@ fun Route.templateFileRoutes() {
             val template = TemplateService.getById(id) ?: return@post call.respond(io.ktor.http.HttpStatusCode.NotFound)
             FileService.deleteFiles(template.localPath, files)
             call.respond(io.ktor.http.HttpStatusCode.NoContent)
+        }
+
+        post("/upload") {
+            val id = call.parameters["id"] ?: return@post call.respond(io.ktor.http.HttpStatusCode.BadRequest)
+            val directory = call.request.queryParameters["directory"] ?: "/"
+            val extract = call.request.queryParameters["extract"]?.toBoolean() ?: false
+            val template = TemplateService.getById(id) ?: return@post call.respond(io.ktor.http.HttpStatusCode.NotFound)
+
+            val multipart = call.receiveMultipart()
+            multipart.forEachPart { part ->
+                if (part is io.ktor.http.content.PartData.FileItem) {
+                    val fileName = part.originalFileName ?: "file"
+                    part.streamProvider().use { input ->
+                        if (extract && fileName.endsWith(".zip", ignoreCase = true)) {
+                            FileService.extractZip(template.localPath, directory, input)
+                        } else {
+                            FileService.saveFile(template.localPath, "$directory/$fileName", input)
+                        }
+                    }
+                }
+                part.dispose()
+            }
+            call.respond(io.ktor.http.HttpStatusCode.OK)
         }
     }
 }

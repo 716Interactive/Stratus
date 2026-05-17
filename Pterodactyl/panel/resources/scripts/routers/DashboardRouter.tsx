@@ -11,6 +11,7 @@ import routes from '@/routers/routes';
 import GroupContainer from '@/components/stratus/GroupContainer';
 import TemplateContainer from '@/components/stratus/TemplateContainer';
 import TemplateFileContainer from '@/components/stratus/templates/files/TemplateFileContainer';
+import TemplateFileEditContainer from '@/components/stratus/templates/files/TemplateFileEditContainer';
 
 export default () => {
     const location = useLocation();
@@ -45,6 +46,9 @@ export default () => {
                         </Route>
                         <Route path={'/stratus/templates/:id/files'} exact>
                             <TemplateFileContainer />
+                        </Route>
+                        <Route path={'/stratus/templates/:id/files/:action(new|edit)'} exact>
+                            <TemplateFileEditContainer />
                         </Route>
                         {routes.account.map(({ path, component: Component }) => (
                             <Route key={path} path={`/account/${path}`.replace('//', '/')} exact>

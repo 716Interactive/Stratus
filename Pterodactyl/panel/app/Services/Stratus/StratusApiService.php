@@ -119,4 +119,21 @@ class StratusApiService
             return null;
         }
     }
+
+    public function multipart(string $endpoint, array $multipart = [], array $query = [])
+    {
+        try {
+            $response = $this->client->post($endpoint, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . config('stratus.token'),
+                ],
+                'query' => $query,
+                'multipart' => $multipart
+            ]);
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            Log::error('Stratus API Error (MULTIPART ' . $endpoint . '): ' . $e->getMessage());
+            return null;
+        }
+    }
 }

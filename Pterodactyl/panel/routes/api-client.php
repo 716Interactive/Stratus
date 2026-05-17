@@ -160,5 +160,6 @@ Route::group(['prefix' => '/stratus', 'middleware' => [RequireTwoFactorAuthentic
         Route::get('/{template}/files/contents', [Client\Stratus\TemplateFileController::class, 'contents']);
         Route::post('/{template}/files/write', [Client\Stratus\TemplateFileController::class, 'write']);
         Route::post('/{template}/files/delete', [Client\Stratus\TemplateFileController::class, 'delete']);
+        Route::post('/{template}/files/upload', [Client\Stratus\TemplateFileController::class, 'upload']);
     });
 });
