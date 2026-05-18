@@ -5,9 +5,7 @@ import com.slamstudios.stratus.db.schema.ServerState
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
-import org.jetbrains.exposed.sql.javatime.CurrentDateTime
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 import java.util.*
@@ -35,18 +33,14 @@ data class ManagedServer(
 object ServerService {
 
     fun getAll(groupId: String? = null, state: ServerState? = null): List<ManagedServer> = transaction {
-        var query = Servers.selectAll()
-        val conditions = mutableListOf<Op<Boolean>>()
+        val query = Servers.selectAll()
         if (groupId != null) {
-            conditions.add(Servers.groupId eq groupId)
+            query.andWhere { Servers.groupId eq groupId }
         }
         if (state != null) {
-            conditions.add(Servers.state eq state.name)
+            query.andWhere { Servers.state eq state.name }
         } else {
-            conditions.add(Servers.state neq ServerState.TERMINATED.name)
-        }
-        query = query.where { 
-            conditions.reduce { acc, op -> acc and op }
+            query.andWhere { Servers.state neq ServerState.TERMINATED.name }
         }
         query.map { it.toManagedServer() }
     }
