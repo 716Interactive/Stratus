@@ -1,0 +1,2 @@
+ALTER TABLE nodes ADD COLUMN allocated_memory INT NOT NULL DEFAULT 0;
+ALTER TABLE nodes ADD COLUMN allocated_disk INT NOT NULL DEFAULT 0;
