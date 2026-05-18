@@ -328,6 +328,12 @@ data class PteroEggAttributes(
 )
 
 @Serializable
+data class PteroAllocatedResources(
+    val memory: Int,
+    val disk: Int
+)
+
+@Serializable
 data class PteroNodeList(
     val data: List<PteroResponse<PteroNodeAttributes>>
 )
@@ -338,5 +344,6 @@ data class PteroNodeAttributes(
     val name: String,
     val fqdn: String,
     val memory: Int,
-    val disk: Int
+    val disk: Int,
+    val allocated_resources: PteroAllocatedResources? = null
 )

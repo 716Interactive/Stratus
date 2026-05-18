@@ -63,22 +63,29 @@ object OrchestratorService {
 
             for (pteroNode in pteroNodes) {
                 val existing = NodeService.getByPterodactylId(pteroNode.id)
+                val pteroAllocatedMem = pteroNode.allocated_resources?.memory ?: 0
+                val pteroAllocatedDisk = pteroNode.allocated_resources?.disk ?: 0
+
                 if (existing != null) {
                     if (existing.name != pteroNode.name ||
                         existing.totalMemory != pteroNode.memory ||
                         existing.totalDisk != pteroNode.disk ||
-                        existing.host != pteroNode.fqdn
+                        existing.host != pteroNode.fqdn ||
+                        existing.allocatedMemory != pteroAllocatedMem ||
+                        existing.allocatedDisk != pteroAllocatedDisk
                     ) {
-                        logger.info("Auto-sync: Updating node ${existing.name} (Ptero ID: ${pteroNode.id}) -> RAM=${pteroNode.memory}MB, Disk=${pteroNode.disk}MB")
+                        logger.info("Auto-sync: Updating node ${existing.name} (Ptero ID: ${pteroNode.id}) -> RAM=${pteroNode.memory}MB, Disk=${pteroNode.disk}MB, AllocatedRAM=${pteroAllocatedMem}MB, AllocatedDisk=${pteroAllocatedDisk}MB")
                         NodeService.update(
                             id = existing.id,
                             name = pteroNode.name,
                             memory = pteroNode.memory,
-                            disk = pteroNode.disk
+                            disk = pteroNode.disk,
+                            allocatedMemory = pteroAllocatedMem,
+                            allocatedDisk = pteroAllocatedDisk
                         )
                     }
                 } else {
-                    logger.info("Auto-sync: Registering new Pterodactyl node '${pteroNode.name}' (Ptero ID: ${pteroNode.id}) -> RAM=${pteroNode.memory}MB, Disk=${pteroNode.disk}MB")
+                    logger.info("Auto-sync: Registering new Pterodactyl node '${pteroNode.name}' (Ptero ID: ${pteroNode.id}) -> RAM=${pteroNode.memory}MB, Disk=${pteroNode.disk}MB, AllocatedRAM=${pteroAllocatedMem}MB, AllocatedDisk=${pteroAllocatedDisk}MB")
                     NodeService.create(
                         Node(
                             id = UUID.randomUUID().toString(),
@@ -87,7 +94,9 @@ object OrchestratorService {
                             host = pteroNode.fqdn,
                             token = "",
                             totalMemory = pteroNode.memory,
-                            totalDisk = pteroNode.disk
+                            totalDisk = pteroNode.disk,
+                            allocatedMemory = pteroAllocatedMem,
+                            allocatedDisk = pteroAllocatedDisk
                         )
                     )
                 }

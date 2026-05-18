@@ -1,6 +1,7 @@
 package com.slamstudios.stratus.services
 
 import com.slamstudios.stratus.db.schema.Nodes
+import com.slamstudios.stratus.db.schema.ServerState
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -15,11 +16,13 @@ data class Node(
     val host: String,
     val token: String,
     val totalMemory: Int,
-    val totalDisk: Int
+    val totalDisk: Int,
+    val allocatedMemory: Int = 0,
+    val allocatedDisk: Int = 0
 )
 
-fun Node.usedMemory(): Int = ServerService.getAll().filter { it.nodeId == this.id }.sumOf { it.memory }
-fun Node.usedDisk(): Int = ServerService.getAll().filter { it.nodeId == this.id }.sumOf { it.disk }
+fun Node.usedMemory(): Int = if (allocatedMemory > 0) allocatedMemory else ServerService.getAll().filter { it.nodeId == this.id && it.state != ServerState.TERMINATED }.sumOf { it.memory }
+fun Node.usedDisk(): Int = if (allocatedDisk > 0) allocatedDisk else ServerService.getAll().filter { it.nodeId == this.id && it.state != ServerState.TERMINATED }.sumOf { it.disk }
 fun Node.canFit(memory: Int, disk: Int): Boolean = (totalMemory - usedMemory() >= memory) && (totalDisk - usedDisk() >= disk)
 
 object NodeService {
@@ -45,15 +48,19 @@ object NodeService {
             it[token] = node.token
             it[totalMemory] = node.totalMemory
             it[totalDisk] = node.totalDisk
+            it[allocatedMemory] = node.allocatedMemory
+            it[allocatedDisk] = node.allocatedDisk
         }
         node
     }
 
-    fun update(id: String, name: String, memory: Int, disk: Int) = transaction {
+    fun update(id: String, name: String, memory: Int, disk: Int, allocatedMemory: Int, allocatedDisk: Int) = transaction {
         Nodes.update({ Nodes.id eq id }) {
             it[Nodes.name] = name
             it[Nodes.totalMemory] = memory
             it[Nodes.totalDisk] = disk
+            it[Nodes.allocatedMemory] = allocatedMemory
+            it[Nodes.allocatedDisk] = allocatedDisk
         }
     }
 
@@ -68,6 +75,8 @@ object NodeService {
         host = this[Nodes.host],
         token = this[Nodes.token],
         totalMemory = this[Nodes.totalMemory],
-        totalDisk = this[Nodes.totalDisk]
+        totalDisk = this[Nodes.totalDisk],
+        allocatedMemory = this[Nodes.allocatedMemory],
+        allocatedDisk = this[Nodes.allocatedDisk]
     )
 }

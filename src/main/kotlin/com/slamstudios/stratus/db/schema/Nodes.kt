@@ -11,6 +11,8 @@ object Nodes : Table("nodes") {
     val token         = text("token").default("")
     val totalMemory   = integer("total_memory")
     val totalDisk     = integer("total_disk")
+    val allocatedMemory = integer("allocated_memory").default(0)
+    val allocatedDisk   = integer("allocated_disk").default(0)
 
     override val primaryKey = PrimaryKey(id)
 }
