@@ -16,9 +16,9 @@ fun Route.templateFileRoutes() {
             val path = call.request.queryParameters["directory"] ?: "/"
             
             val template = TemplateService.getById(id) ?: return@get call.respond(io.ktor.http.HttpStatusCode.NotFound)
+            val basePath = java.io.File(template.localPath, template.id).absolutePath
             
-            // Templates are stored locally on the Orchestrator base path
-            val files = FileService.listFiles(template.localPath, path)
+            val files = FileService.listFiles(basePath, path)
             call.respond(files)
         }
 
@@ -26,7 +26,8 @@ fun Route.templateFileRoutes() {
             val id = call.parameters["id"] ?: return@get call.respond(io.ktor.http.HttpStatusCode.BadRequest)
             val file = call.request.queryParameters["file"] ?: return@get call.respond(io.ktor.http.HttpStatusCode.BadRequest)
             val template = TemplateService.getById(id) ?: return@get call.respond(io.ktor.http.HttpStatusCode.NotFound)
-            call.respondText(FileService.getFileContents(template.localPath, file))
+            val basePath = java.io.File(template.localPath, template.id).absolutePath
+            call.respondText(FileService.getFileContents(basePath, file))
         }
 
         post("/write") {
@@ -34,7 +35,8 @@ fun Route.templateFileRoutes() {
             val file = call.request.queryParameters["file"] ?: return@post call.respond(io.ktor.http.HttpStatusCode.BadRequest)
             val content = call.receiveText()
             val template = TemplateService.getById(id) ?: return@post call.respond(io.ktor.http.HttpStatusCode.NotFound)
-            FileService.writeFileContents(template.localPath, file, content)
+            val basePath = java.io.File(template.localPath, template.id).absolutePath
+            FileService.writeFileContents(basePath, file, content)
             call.respond(io.ktor.http.HttpStatusCode.NoContent)
         }
 
@@ -42,7 +44,8 @@ fun Route.templateFileRoutes() {
             val id = call.parameters["id"] ?: return@post call.respond(io.ktor.http.HttpStatusCode.BadRequest)
             val files = call.receive<List<String>>()
             val template = TemplateService.getById(id) ?: return@post call.respond(io.ktor.http.HttpStatusCode.NotFound)
-            FileService.deleteFiles(template.localPath, files)
+            val basePath = java.io.File(template.localPath, template.id).absolutePath
+            FileService.deleteFiles(basePath, files)
             call.respond(io.ktor.http.HttpStatusCode.NoContent)
         }
 
@@ -51,6 +54,7 @@ fun Route.templateFileRoutes() {
             val directory = call.request.queryParameters["directory"] ?: "/"
             val extract = call.request.queryParameters["extract"]?.toBoolean() ?: false
             val template = TemplateService.getById(id) ?: return@post call.respond(io.ktor.http.HttpStatusCode.NotFound)
+            val basePath = java.io.File(template.localPath, template.id).absolutePath
 
             val multipart = call.receiveMultipart()
             multipart.forEachPart { part ->
@@ -58,10 +62,10 @@ fun Route.templateFileRoutes() {
                     val fileName = part.originalFileName ?: "file"
                     part.provider().toInputStream().use { input ->
                         if (extract && fileName.endsWith(".zip", ignoreCase = true)) {
-                            FileService.extractZip(template.localPath, directory, input)
-                        } else {
-                            FileService.saveFile(template.localPath, "$directory/$fileName", input)
-                        }
+                            FileService.extractZip(basePath, directory, input)
+                         } else {
+                            FileService.saveFile(basePath, "$directory/$fileName", input)
+                         }
                     }
                 }
                 part.dispose()
