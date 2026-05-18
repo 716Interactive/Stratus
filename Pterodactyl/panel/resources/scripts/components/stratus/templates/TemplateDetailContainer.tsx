@@ -32,6 +32,11 @@ export default () => {
         http.get(url).then(res => res.data)
     );
 
+    // Fetch dynamic list of available Pterodactyl Eggs
+    const { data: eggs } = useSWR<{ id: number; name: string }[]>('/api/client/stratus/templates/eggs', (url) =>
+        http.get(url).then(res => res.data)
+    );
+
     // Settings fields
     const [name, setName] = useState('');
     const [eggId, setEggId] = useState(1);
@@ -232,15 +237,19 @@ export default () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Egg ID</label>
-                                        <input
-                                            type={'number'}
-                                            value={eggId}
-                                            onChange={(e) => setEggId(parseInt(e.target.value) || 1)}
-                                            required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
-                                        />
-                                    </div>
+                                         <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Pterodactyl Egg</label>
+                                         <select
+                                             value={eggId}
+                                             onChange={(e) => setEggId(parseInt(e.target.value) || 1)}
+                                             required
+                                             className={'bg-neutral-800 text-neutral-200 px-3 py-2.5 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
+                                         >
+                                             <option value="" disabled>Select an Egg</option>
+                                             {eggs?.map((egg) => (
+                                                 <option key={egg.id} value={egg.id}>{egg.name} (ID: {egg.id})</option>
+                                             ))}
+                                         </select>
+                                     </div>
 
                                     <div>
                                         <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Memory Limit (MB)</label>

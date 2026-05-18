@@ -52,7 +52,8 @@ data class PteroAllocationAttributes(
     val id: Int,
     val ip: String,
     val port: Int,
-    val ip_alias: String? = null
+    val ip_alias: String? = null,
+    val assigned: Boolean = false
 )
 
 object PterodactylService {
@@ -125,6 +126,22 @@ object PterodactylService {
         }
     }
 
+    suspend fun getUnassignedAllocation(nodeId: Int): Int? {
+        return try {
+            val response = client.get("/api/application/nodes/$nodeId/allocations")
+            if (response.status == HttpStatusCode.OK) {
+                val body: PteroAllocationList = response.body()
+                body.data.map { it.attributes }.firstOrNull { !it.assigned }?.id
+            } else {
+                logger.error("Failed to fetch allocations for node $nodeId: ${response.status} - ${response.bodyAsText()}")
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Exception while fetching allocations for node $nodeId", e)
+            null
+        }
+    }
+
     suspend fun createServer(
         name: String,
         userId: Int,
@@ -136,36 +153,36 @@ object PterodactylService {
         image: String,
         environment: Map<String, String>
     ): PteroServer? {
-        val payload = mapOf(
-            "name" to name,
-            "user" to userId,
-            "egg" to eggId,
-            "docker_image" to image,
-            "startup" to startup,
-            "environment" to environment,
-            "limits" to mapOf(
-                "memory" to memoryMb,
-                "swap" to 0,
-                "disk" to diskMb,
-                "io" to 500,
-                "cpu" to 0
-            ),
-            "feature_limits" to mapOf(
-                "databases" to 0,
-                "backups" to 0
-            ),
-            "allocation" to mapOf(
-                "default" to 0 // 0 picks the first available from the node if not specified
-                // Actually, Ptero API usually needs a specific allocation ID or just a node ID for auto-allocation.
-                // For application API, you often specify the allocation ID or use a different endpoint.
-                // Assuming "allocation" logic is handled or we use a specific one.
-            ),
-            "deploy" to mapOf(
-                "locations" to listOf<Int>(),
-                "dedicated_ip" to false,
-                "port_range" to listOf<String>()
-            )
-        )
+        val allocationId = getUnassignedAllocation(nodeId)
+        if (allocationId == null) {
+            logger.error("No free allocations found for node $nodeId. Cannot create server.")
+            return null
+        }
+
+        val payload = buildJsonObject {
+            put("name", name)
+            put("user", userId)
+            put("egg", eggId)
+            put("docker_image", image)
+            put("startup", startup)
+            put("environment", buildJsonObject {
+                environment.forEach { (k, v) -> put(k, v) }
+            })
+            put("limits", buildJsonObject {
+                put("memory", memoryMb)
+                put("swap", 0)
+                put("disk", diskMb)
+                put("io", 500)
+                put("cpu", 0)
+            })
+            put("feature_limits", buildJsonObject {
+                put("databases", 0)
+                put("backups", 0)
+            })
+            put("allocation", buildJsonObject {
+                put("default", allocationId)
+            })
+        }
 
         return try {
             val response = client.post("/api/application/servers?include=allocations") {
@@ -215,7 +232,49 @@ object PterodactylService {
             emptyList()
         }
     }
+
+    suspend fun getEggs(): List<PteroEggAttributes> {
+        return try {
+            val response = client.get("/api/application/nests")
+            if (response.status == HttpStatusCode.OK) {
+                val nestsBody: PteroResponseList<PteroNestAttributes> = response.body()
+                val eggsList = mutableListOf<PteroEggAttributes>()
+                for (nest in nestsBody.data) {
+                    val nestId = nest.attributes.id
+                    val eggsResponse = client.get("/api/application/nests/$nestId/eggs")
+                    if (eggsResponse.status == HttpStatusCode.OK) {
+                        val eggsBody: PteroResponseList<PteroEggAttributes> = eggsResponse.body()
+                        eggsList.addAll(eggsBody.data.map { it.attributes })
+                    }
+                }
+                eggsList
+            } else {
+                logger.error("Failed to fetch Pterodactyl nests: ${response.status} - ${response.bodyAsText()}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            logger.error("Exception while fetching Pterodactyl eggs", e)
+            emptyList()
+        }
+    }
 }
+
+@Serializable
+data class PteroResponseList<T>(
+    val data: List<PteroResponse<T>>
+)
+
+@Serializable
+data class PteroNestAttributes(
+    val id: Int,
+    val name: String
+)
+
+@Serializable
+data class PteroEggAttributes(
+    val id: Int,
+    val name: String
+)
 
 @Serializable
 data class PteroNodeList(

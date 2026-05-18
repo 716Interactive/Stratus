@@ -1,5 +1,6 @@
 package com.slamstudios.stratus.routes
 
+import com.slamstudios.stratus.services.PterodactylService
 import com.slamstudios.stratus.services.TemplateService
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -25,6 +26,10 @@ fun Route.templateRoutes() {
     route("/templates") {
         get {
             call.respond(TemplateService.getAll())
+        }
+
+        get("/eggs") {
+            call.respond(PterodactylService.getEggs())
         }
 
         post {
