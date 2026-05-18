@@ -39,6 +39,62 @@ class ServerDetailsController extends Controller
     {
         Assert::isInstanceOf($node = $request->attributes->get('node'), Node::class);
 
+        $template = \DB::table('templates')->where('id', $uuid)->first();
+        if ($template) {
+            return new JsonResponse([
+                'settings' => [
+                    'uuid' => $template->id,
+                    'meta' => [
+                        'name' => $template->name,
+                        'description' => 'Stratus Golden Template',
+                    ],
+                    'suspended' => false,
+                    'environment' => [],
+                    'invocation' => '',
+                    'skip_egg_scripts' => true,
+                    'build' => [
+                        'memory_limit' => 1024,
+                        'swap' => 0,
+                        'io_weight' => 500,
+                        'cpu_limit' => 0,
+                        'threads' => null,
+                        'disk_space' => 10240,
+                        'oom_disabled' => true,
+                    ],
+                    'container' => [
+                        'image' => 'ghcr.io/pterodactyl/yolks:java_17',
+                        'oom_disabled' => true,
+                        'requires_rebuild' => false,
+                    ],
+                    'allocations' => [
+                        'force_outgoing_ip' => false,
+                        'default' => [
+                            'ip' => '127.0.0.1',
+                            'port' => 20000,
+                        ],
+                        'mappings' => [],
+                    ],
+                    'mounts' => [],
+                    'egg' => [
+                        'id' => '00000000-0000-0000-0000-000000000000',
+                        'file_denylist' => [],
+                    ],
+                ],
+                'process_configuration' => [
+                    'startup' => [
+                        'done' => ['Server marked as running.'],
+                        'user_interaction' => [],
+                        'strip_ansi' => false,
+                    ],
+                    'stop' => [
+                        'type' => 'command',
+                        'value' => 'stop',
+                    ],
+                    'configs' => [],
+                ],
+            ]);
+        }
+
         $server = $this->repository->getByUuid($uuid);
         $transfer = $server->transfer;
 

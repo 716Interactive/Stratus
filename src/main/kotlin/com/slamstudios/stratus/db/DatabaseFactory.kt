@@ -35,6 +35,34 @@ object DatabaseFactory {
         Database.connect(dataSource)
         log.info("Database connected: ${config.url}")
 
+        // ── Migrate existing templates path in database & filesystem ──────────
+        transaction {
+            org.jetbrains.exposed.sql.update(Templates) {
+                it[localPath] = "/var/lib/pterodactyl/volumes"
+            }
+            
+            // Check filesystem and migrate physically
+            org.jetbrains.exposed.sql.selectAll(Templates).forEach { row ->
+                val templateId = row[Templates.id]
+                val oldDir = java.io.File("/var/lib/pterodactyl/templates/$templateId")
+                val newDir = java.io.File("/var/lib/pterodactyl/volumes/$templateId")
+                
+                if (oldDir.exists() && oldDir.isDirectory) {
+                    log.info("Migrating template physical directory from $oldDir to $newDir…")
+                    try {
+                        if (!newDir.exists()) {
+                            newDir.mkdirs()
+                        }
+                        oldDir.copyRecursively(newDir, overwrite = true)
+                        oldDir.deleteRecursively()
+                        log.info("Successfully migrated template physical directory $templateId.")
+                    } catch (e: Exception) {
+                        log.error("Failed to physically migrate template $templateId: ${e.message}", e)
+                    }
+                }
+            }
+        }
+
         // ── Prune stale terminated servers on startup ─────────────────────────
         transaction {
             Servers.deleteWhere { Servers.state eq ServerState.TERMINATED.name }

@@ -50,10 +50,10 @@ object TemplateService {
         Templates.insert {
             it[Templates.id] = id
             it[Templates.name] = name
-            it[Templates.localPath] = "/var/lib/pterodactyl/templates"
+            it[Templates.localPath] = "/var/lib/pterodactyl/volumes"
             it[Templates.ownerId] = ownerId
         }
-        Template(id, name, null, "/var/lib/pterodactyl/templates", ownerId)
+        Template(id, name, null, "/var/lib/pterodactyl/volumes", ownerId)
     }
 
     fun createVersion(templateId: String, eggId: Int, configJson: String): TemplateVersion = transaction {
