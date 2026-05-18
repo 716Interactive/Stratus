@@ -199,4 +199,34 @@ object PterodactylService {
             null
         }
     }
+
+    suspend fun getNodes(): List<PteroNodeAttributes> {
+        return try {
+            val response = client.get("/api/application/nodes")
+            if (response.status == HttpStatusCode.OK) {
+                val body: PteroNodeList = response.body()
+                body.data.map { it.attributes }
+            } else {
+                logger.error("Failed to fetch Pterodactyl nodes: ${response.status} - ${response.bodyAsText()}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            logger.error("Exception while fetching Pterodactyl nodes", e)
+            emptyList()
+        }
+    }
 }
+
+@Serializable
+data class PteroNodeList(
+    val data: List<PteroResponse<PteroNodeAttributes>>
+)
+
+@Serializable
+data class PteroNodeAttributes(
+    val id: Int,
+    val name: String,
+    val fqdn: String,
+    val memory: Int,
+    val disk: Int
+)

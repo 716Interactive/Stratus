@@ -34,6 +34,9 @@ object OrchestratorService {
         logger.info("Stratus Orchestrator starting…")
 
         scope.launch {
+            // Initial node sync on startup
+            syncNodes()
+
             while (running) {
                 try {
                     watchdogLogic()
@@ -49,10 +52,59 @@ object OrchestratorService {
         logger.info("Stratus Orchestrator background loops started.")
     }
 
+    private suspend fun syncNodes() {
+        try {
+            logger.info("Syncing nodes from Pterodactyl...")
+            val pteroNodes = PterodactylService.getNodes()
+            if (pteroNodes.isEmpty()) {
+                logger.warn("No nodes returned from Pterodactyl or failed to fetch nodes.")
+                return
+            }
+
+            for (pteroNode in pteroNodes) {
+                val existing = NodeService.getByPterodactylId(pteroNode.id)
+                if (existing != null) {
+                    if (existing.name != pteroNode.name ||
+                        existing.totalMemory != pteroNode.memory ||
+                        existing.totalDisk != pteroNode.disk ||
+                        existing.host != pteroNode.fqdn
+                    ) {
+                        logger.info("Auto-sync: Updating node ${existing.name} (Ptero ID: ${pteroNode.id}) -> RAM=${pteroNode.memory}MB, Disk=${pteroNode.disk}MB")
+                        NodeService.update(
+                            id = existing.id,
+                            name = pteroNode.name,
+                            memory = pteroNode.memory,
+                            disk = pteroNode.disk
+                        )
+                    }
+                } else {
+                    logger.info("Auto-sync: Registering new Pterodactyl node '${pteroNode.name}' (Ptero ID: ${pteroNode.id}) -> RAM=${pteroNode.memory}MB, Disk=${pteroNode.disk}MB")
+                    NodeService.create(
+                        Node(
+                            id = UUID.randomUUID().toString(),
+                            pterodactylId = pteroNode.id,
+                            name = pteroNode.name,
+                            host = pteroNode.fqdn,
+                            token = "",
+                            totalMemory = pteroNode.memory,
+                            totalDisk = pteroNode.disk
+                        )
+                    )
+                }
+            }
+            logger.info("Successfully synced ${pteroNodes.size} node(s) from Pterodactyl.")
+        } catch (e: Exception) {
+            logger.error("Failed to auto-sync nodes from Pterodactyl", e)
+        }
+    }
+
     private fun startAutoscaler() {
         scope.launch {
             while (running) {
                 try {
+                    // Sync nodes dynamically prior to auto-scaling
+                    syncNodes()
+                    
                     autoscaleLogic()
                     
                     // Also check for backups
