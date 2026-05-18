@@ -317,7 +317,8 @@ data class PteroNestAttributes(
 data class PteroEggAttributes(
     val id: Int,
     val name: String,
-    val nest: Int
+    val nest: Int,
+    val docker_images: Map<String, String>? = null
 )
 
 @Serializable

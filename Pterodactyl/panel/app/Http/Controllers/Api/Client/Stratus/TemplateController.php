@@ -49,4 +49,10 @@ class TemplateController extends ClientApiController
         $res = $this->api->put('/templates/' . $templateId, $request->all());
         return response()->json($res);
     }
+
+    public function eggs(Request $request)
+    {
+        $res = $this->api->get('/templates/eggs');
+        return response()->json($res);
+    }
 }

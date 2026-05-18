@@ -154,6 +154,7 @@ Route::group([
 
 Route::group(['prefix' => '/stratus', 'middleware' => [RequireTwoFactorAuthentication::class]], function () {
     Route::group(['prefix' => '/templates'], function () {
+        Route::get('/eggs', [Client\Stratus\TemplateController::class, 'eggs']);
         Route::get('/', [Client\Stratus\TemplateController::class, 'index']);
         Route::get('/{template}', [Client\Stratus\TemplateController::class, 'view']);
         Route::put('/{template}', [Client\Stratus\TemplateController::class, 'update']);
