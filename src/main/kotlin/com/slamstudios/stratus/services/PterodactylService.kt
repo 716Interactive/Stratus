@@ -159,6 +159,15 @@ object PterodactylService {
             return null
         }
 
+        // Fetch this egg's variables to guarantee all required variables have a default value
+        val eggs = getEggs()
+        val egg = eggs.find { it.id == eggId }
+        val eggVariables = if (egg != null) {
+            getEggVariables(egg.nest, eggId)
+        } else {
+            emptyMap()
+        }
+
         val payload = buildJsonObject {
             put("name", name)
             put("user", userId)
@@ -166,6 +175,9 @@ object PterodactylService {
             put("docker_image", image)
             put("startup", startup)
             put("environment", buildJsonObject {
+                // 1. Pre-fill egg's default variables
+                eggVariables.forEach { (k, v) -> put(k, v) }
+                // 2. Override with custom variables from orchestrator/template
                 environment.forEach { (k, v) -> put(k, v) }
             })
             put("limits", buildJsonObject {
@@ -257,6 +269,37 @@ object PterodactylService {
             emptyList()
         }
     }
+
+    suspend fun getEggVariables(nestId: Int, eggId: Int): Map<String, String> {
+        return try {
+            val response = client.get("/api/application/nests/$nestId/eggs/$eggId?include=variables")
+            if (response.status == HttpStatusCode.OK) {
+                val text = response.bodyAsText()
+                val json = Json.parseToJsonElement(text).jsonObject
+                val attributes = json["attributes"]?.jsonObject
+                val variables = attributes?.get("relationships")?.jsonObject
+                    ?.get("variables")?.jsonObject?.get("data")?.jsonArray
+                
+                val result = mutableMapOf<String, String>()
+                if (variables != null) {
+                    for (v in variables) {
+                        val vAttr = v.jsonObject["attributes"]?.jsonObject
+                        val envVar = vAttr?.get("env_variable")?.jsonPrimitive?.content
+                        val defaultVal = vAttr?.get("default_value")?.jsonPrimitive?.content ?: ""
+                        if (envVar != null) {
+                            result[envVar] = defaultVal
+                        }
+                    }
+                }
+                result
+            } else {
+                emptyMap()
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to fetch egg variables for egg $eggId in nest $nestId", e)
+            emptyMap()
+        }
+    }
 }
 
 @Serializable
@@ -273,7 +316,8 @@ data class PteroNestAttributes(
 @Serializable
 data class PteroEggAttributes(
     val id: Int,
-    val name: String
+    val name: String,
+    val nest: Int
 )
 
 @Serializable
