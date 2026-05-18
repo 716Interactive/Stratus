@@ -44,7 +44,60 @@ class SftpAuthenticationController extends Controller
             throw new TooManyRequestsHttpException($seconds, "Too many login attempts for this account, please try again in $seconds seconds.");
         }
 
-        $user = $this->getUser($request, $connection['username']);
+        $isTemplate = false;
+        $username = $connection['username'];
+        if (str_ends_with($username, '.template')) {
+            $isTemplate = true;
+            $username = substr($username, 0, -9);
+        }
+
+        $user = $this->getUser($request, $username);
+
+        if ($isTemplate) {
+            $template = \DB::table('templates')
+                ->where('id', 'like', $connection['server'] . '%')
+                ->first();
+
+            if (!$template) {
+                $this->reject($request);
+            }
+
+            if ($request->input('type') !== 'public_key') {
+                if (!password_verify($request->input('password'), $user->password)) {
+                    Activity::event('auth:sftp.fail')->property('method', 'password')->subject($user)->log();
+
+                    $this->reject($request);
+                }
+            } else {
+                $key = null;
+                try {
+                    $key = PublicKeyLoader::loadPublicKey(trim($request->input('password')));
+                } catch (NoKeyLoadedException) {
+                    // do nothing
+                }
+
+                if (!$key || !$user->sshKeys()->where('fingerprint', $key->getFingerprint('sha256'))->exists()) {
+                    $this->reject($request, is_null($key));
+                }
+            }
+
+            if (!$user->root_admin && $template->owner_id !== $user->id) {
+                throw new HttpForbiddenException('You do not have permission to access SFTP for this template.');
+            }
+
+            return new JsonResponse([
+                'user' => $user->uuid,
+                'server' => $template->id,
+                'permissions' => [
+                    Permission::ACTION_FILE_READ,
+                    Permission::ACTION_FILE_CREATE,
+                    Permission::ACTION_FILE_UPDATE,
+                    Permission::ACTION_FILE_DELETE,
+                    Permission::ACTION_FILE_SFTP
+                ],
+            ]);
+        }
+
         $server = $this->getServer($request, $connection['server']);
 
         if ($request->input('type') !== 'public_key') {

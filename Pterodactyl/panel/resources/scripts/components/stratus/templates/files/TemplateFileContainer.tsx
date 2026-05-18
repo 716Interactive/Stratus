@@ -546,7 +546,7 @@ export default () => {
                                         )}
                                         <div 
                                             onClick={() => handleDelete(file.name)} 
-                                            css={tw`p-2 flex items-center rounded hover:bg-red-950 hover:text-red-300 cursor-pointer text-xs text-red-400 border-t border-neutral-800/50`}
+                                            css={tw`p-2 flex items-center rounded hover:bg-red-900 hover:text-red-300 cursor-pointer text-xs text-red-400 border-t border-neutral-800/50`}
                                         >
                                             <FontAwesomeIcon icon={faTrashAlt} css={tw`text-xs`} fixedWidth />
                                             <span css={tw`ml-2`}>Delete</span>

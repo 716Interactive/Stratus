@@ -94,5 +94,60 @@ class TemplateFileController extends ClientApiController
         ]);
         
         return response()->noContent();
-    }
+     }
+
+     public function rename(Request $request, $templateId)
+     {
+         $this->validateTemplateOwnership($templateId, $request->user()->id);
+         
+         $from = $request->input('from');
+         $to = $request->input('to');
+         
+         $this->api->post("/templates/{$templateId}/files/rename", [
+             'from' => $from,
+             'to' => $to
+         ]);
+         
+         return response()->noContent();
+     }
+
+     public function compress(Request $request, $templateId)
+     {
+         $this->validateTemplateOwnership($templateId, $request->user()->id);
+         
+         $directory = $request->input('directory', '/');
+         $files = $request->input('files', []);
+         
+         $res = $this->api->post("/templates/{$templateId}/files/compress", [
+             'directory' => $directory,
+             'files' => $files
+         ]);
+         
+         return response()->json($res ?? []);
+     }
+
+     public function decompress(Request $request, $templateId)
+     {
+         $this->validateTemplateOwnership($templateId, $request->user()->id);
+         
+         $file = $request->input('file');
+         
+         $this->api->post("/templates/{$templateId}/files/decompress", [
+             'file' => $file
+         ]);
+         
+         return response()->noContent();
+     }
+
+     public function download(Request $request, $templateId)
+     {
+         $this->validateTemplateOwnership($templateId, $request->user()->id);
+         
+         $file = $request->query('file');
+         $content = $this->api->get("/templates/{$templateId}/files/download", ['file' => $file]);
+         
+         return response($content)
+             ->header('Content-Type', 'application/octet-stream')
+             ->header('Content-Disposition', 'attachment; filename="' . basename($file) . '"');
+     }
 }

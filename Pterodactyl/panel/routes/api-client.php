@@ -163,6 +163,10 @@ Route::group(['prefix' => '/stratus', 'middleware' => [RequireTwoFactorAuthentic
         Route::post('/{template}/files/write', [Client\Stratus\TemplateFileController::class, 'write']);
         Route::post('/{template}/files/delete', [Client\Stratus\TemplateFileController::class, 'delete']);
         Route::post('/{template}/files/upload', [Client\Stratus\TemplateFileController::class, 'upload']);
+        Route::post('/{template}/files/rename', [Client\Stratus\TemplateFileController::class, 'rename']);
+        Route::post('/{template}/files/compress', [Client\Stratus\TemplateFileController::class, 'compress']);
+        Route::post('/{template}/files/decompress', [Client\Stratus\TemplateFileController::class, 'decompress']);
+        Route::get('/{template}/files/download', [Client\Stratus\TemplateFileController::class, 'download']);
     });
 
     Route::group(['prefix' => '/groups'], function () {

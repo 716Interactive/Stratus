@@ -14,6 +14,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolderOpen, faTerminal, faKey, faSave, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import useFlash from '@/plugins/useFlash';
+import { useStoreState } from 'easy-peasy';
+import CopyOnClick from '@/components/elements/CopyOnClick';
+import TitledGreyBox from '@/components/elements/TitledGreyBox';
+import { Button } from '@/components/elements/button/index';
 
 interface PteroTemplateConfig {
     memory: number;
@@ -25,6 +29,7 @@ interface PteroTemplateConfig {
 }
 
 export default () => {
+    const username = useStoreState((state) => state.user.data?.username || 'user');
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
     const { clearFlashes, addFlash, addError } = useFlash();
@@ -180,51 +185,52 @@ export default () => {
                         </Route>
                         
                         <Route path={'/stratus/templates/:id/sftp'} exact>
-                            <div className={'grid grid-cols-1 lg:grid-cols-3 gap-6'}>
-                                <div className={'lg:col-span-2 bg-neutral-900 p-6 rounded shadow-lg border border-neutral-700'}>
-                                    <h3 className={'text-xl font-header text-neutral-200 mb-4'}>SFTP Information</h3>
-                                    <p className={'text-neutral-400 text-sm mb-6'}>
-                                        Connect directly to this template\'s raw golden files using any third-party SFTP client (such as FileZilla, WinSCP, or Cyberduck).
-                                    </p>
-                                    
-                                    <div className={'grid grid-cols-1 md:grid-cols-2 gap-4'}>
-                                        <div className={'bg-neutral-800 p-4 rounded border border-neutral-700/50'}>
-                                            <span className={'text-xs text-neutral-400 uppercase font-bold block'}>Server Address</span>
-                                            <code className={'text-cyan-400 font-mono text-sm'}>{window.location.hostname}</code>
+                            <div className={'md:flex'}>
+                                <div className={'w-full md:flex-1 md:mr-10'}>
+                                    <TitledGreyBox title={'SFTP Details'}>
+                                        <div>
+                                            <Label>Server Address</Label>
+                                            <CopyOnClick text={`sftp://${window.location.hostname}:2022`}>
+                                                <Input type={'text'} value={`sftp://${window.location.hostname}:2022`} readOnly />
+                                            </CopyOnClick>
                                         </div>
-                                        <div className={'bg-neutral-800 p-4 rounded border border-neutral-700/50'}>
-                                            <span className={'text-xs text-neutral-400 uppercase font-bold block'}>Port</span>
-                                            <code className={'text-neutral-200 font-mono text-sm'}>2022</code>
+                                        <div className={'mt-6'}>
+                                            <Label>Username</Label>
+                                            <CopyOnClick text={`${username}.template.${template.id.split('-')[0]}`}>
+                                                <Input type={'text'} value={`${username}.template.${template.id.split('-')[0]}`} readOnly />
+                                            </CopyOnClick>
                                         </div>
-                                        <div className={'bg-neutral-800 p-4 rounded border border-neutral-700/50 md:col-span-2'}>
-                                            <span className={'text-xs text-neutral-400 uppercase font-bold block'}>Username</span>
-                                            <code className={'text-cyan-400 font-mono text-sm'}>template.{template.id}</code>
+                                        <div className={'mt-6 flex items-center'}>
+                                            <div className={'flex-1'}>
+                                                <div className={'border-l-4 border-cyan-500 p-3 bg-cyan-950/10'}>
+                                                    <p className={'text-xs text-neutral-200'}>
+                                                        Your SFTP password is the same as the password you use to access this panel.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className={'ml-4'}>
+                                                <a href={`sftp://${username}.template.${template.id.split('-')[0]}@${window.location.hostname}:2022`}>
+                                                    <Button.Text variant={Button.Variants.Secondary}>Launch SFTP</Button.Text>
+                                                </a>
+                                            </div>
                                         </div>
-                                        <div className={'bg-neutral-800 p-4 rounded border border-neutral-700/50 md:col-span-2'}>
-                                            <span className={'text-xs text-neutral-400 uppercase font-bold block'}>Directory Path</span>
-                                            <code className={'text-neutral-300 font-mono text-xs'}>/var/lib/pterodactyl/templates/{template.id}</code>
-                                        </div>
-                                    </div>
+                                    </TitledGreyBox>
                                 </div>
-                                
-                                <div className={'bg-neutral-900 p-6 rounded shadow-lg border border-neutral-700 flex flex-col justify-between'}>
-                                    <div>
-                                        <h3 className={'text-lg font-header text-neutral-200 mb-3'}>Password Instruction</h3>
-                                        <p className={'text-neutral-400 text-sm leading-relaxed mb-4'}>
-                                            To authenticate, use your **standard account password** or active API key credentials.
-                                        </p>
-                                        <div className={'bg-cyan-950/20 border border-cyan-800/40 p-4 rounded text-xs text-cyan-300'}>
-                                            <strong>Pro Tip:</strong> Ensure that your server group is offline before making extensive bulk uploads via SFTP to avoid file locking conflicts.
+                                <div className={'w-full mt-6 md:flex-1 md:mt-0'}>
+                                    <TitledGreyBox title={'Template Directory'}>
+                                        <div>
+                                            <Label>Golden Template Path</Label>
+                                            <CopyOnClick text={`/var/lib/pterodactyl/templates/${template.id}`}>
+                                                <Input type={'text'} value={`/var/lib/pterodactyl/templates/${template.id}`} readOnly />
+                                            </CopyOnClick>
                                         </div>
-                                    </div>
-                                    <div className={'mt-6 pt-4 border-t border-neutral-800'}>
-                                        <a 
-                                            href={`sftp://template.${template.id}@${window.location.hostname}:2022`} 
-                                            className={'block text-center bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2.5 rounded font-medium transition-colors text-sm'}
-                                        >
-                                            Launch SFTP Client
-                                        </a>
-                                    </div>
+                                        <div className={'mt-6'}>
+                                            <Label>Template ID</Label>
+                                            <CopyOnClick text={template.id}>
+                                                <Input type={'text'} value={template.id} readOnly />
+                                            </CopyOnClick>
+                                        </div>
+                                    </TitledGreyBox>
                                 </div>
                             </div>
                         </Route>
