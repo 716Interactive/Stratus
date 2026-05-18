@@ -5,6 +5,9 @@ import http from '@/api/http';
 import PageContentBlock from '@/components/elements/PageContentBlock';
 import Spinner from '@/components/elements/Spinner';
 import SubNavigation from '@/components/elements/SubNavigation';
+import Input, { Textarea } from '@/components/elements/Input';
+import Label from '@/components/elements/Label';
+import Select from '@/components/elements/Select';
 import TemplateFileContainer from '@/components/stratus/templates/files/TemplateFileContainer';
 import TemplateFileEditContainer from '@/components/stratus/templates/files/TemplateFileEditContainer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -265,19 +268,18 @@ export default () => {
 
                                 <div className={'grid grid-cols-1 md:grid-cols-2 gap-6'}>
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Template Name</label>
-                                        <input
+                                        <Label>Template Name</Label>
+                                        <Input
                                             type={'text'}
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             onBlur={() => autosaveSettings({ name })}
                                             required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
                                     <div>
-                                         <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Pterodactyl Egg</label>
-                                         <select
+                                         <Label>Pterodactyl Egg</Label>
+                                         <Select
                                              value={eggId}
                                              onChange={(e) => {
                                                  const val = parseInt(e.target.value) || 1;
@@ -291,66 +293,61 @@ export default () => {
                                                  autosaveSettings({ eggId: val, image: newImg });
                                              }}
                                              required
-                                             className={'bg-neutral-800 text-neutral-200 px-3 py-2.5 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                          >
-                                             <option value="" disabled>Select an Egg</option>
+                                             <option value="" disabled className={'bg-neutral-800 text-neutral-200'}>Select an Egg</option>
                                              {eggs?.map((egg) => (
-                                                 <option key={egg.id} value={egg.id}>{egg.name} (ID: {egg.id})</option>
+                                                 <option key={egg.id} value={egg.id} className={'bg-neutral-800 text-neutral-200'}>{egg.name} (ID: {egg.id})</option>
                                              ))}
-                                         </select>
+                                         </Select>
                                      </div>
 
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Memory Limit (MB)</label>
-                                        <input
+                                        <Label>Memory Limit (MB)</Label>
+                                        <Input
                                             type={'number'}
                                             value={memory}
                                             onChange={(e) => setMemory(parseInt(e.target.value) || 2048)}
                                             onBlur={() => autosaveSettings({ memory })}
                                             required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Disk Limit (MB)</label>
-                                        <input
+                                        <Label>Disk Limit (MB)</Label>
+                                        <Input
                                             type={'number'}
                                             value={disk}
                                             onChange={(e) => setDisk(parseInt(e.target.value) || 5120)}
                                             onBlur={() => autosaveSettings({ disk })}
                                             required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
 
                                     <div className={'md:col-span-2'}>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>CPU Limit (%) (0 for Unlimited)</label>
-                                        <input
+                                        <Label>CPU Limit (%) (0 for Unlimited)</Label>
+                                        <Input
                                             type={'number'}
                                             value={cpu}
                                             onChange={(e) => setCpu(parseInt(e.target.value) || 0)}
                                             onBlur={() => autosaveSettings({ cpu })}
                                             required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
 
                                     <div className={'md:col-span-2'}>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Startup Command</label>
-                                        <input
+                                        <Label>Startup Command</Label>
+                                        <Input
                                             type={'text'}
                                             value={startup}
                                             onChange={(e) => setStartup(e.target.value)}
                                             onBlur={() => autosaveSettings({ startup })}
                                             required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 font-mono text-sm'}
                                         />
                                     </div>
 
                                     <div className={'md:col-span-2'}>
                                         <div className={'flex justify-between items-center mb-2'}>
-                                            <label className={'block text-xs text-neutral-400 uppercase font-bold'}>Docker Image</label>
-                                            <label className={'flex items-center text-xs text-neutral-400 cursor-pointer hover:text-neutral-300'}>
+                                            <Label className={'!mb-0'}>Docker Image</Label>
+                                            <Label className={'flex items-center cursor-pointer hover:text-neutral-300 !mb-0'}>
                                                 <input 
                                                     type={'checkbox'} 
                                                     checked={useCustomImage} 
@@ -369,39 +366,37 @@ export default () => {
                                                     className={'rounded bg-neutral-800 border-neutral-700 text-cyan-600 focus:ring-cyan-500 mr-1.5'}
                                                 />
                                                 <span>Use custom image</span>
-                                            </label>
+                                            </Label>
                                         </div>
 
                                         {useCustomImage || !eggs?.find(eg => eg.id === eggId)?.docker_images || Object.keys(eggs.find(eg => eg.id === eggId)?.docker_images || {}).length === 0 ? (
-                                            <input
+                                            <Input
                                                 type={'text'}
                                                 value={image}
                                                 onChange={(e) => setImage(e.target.value)}
                                                 onBlur={() => autosaveSettings({ image })}
                                                 required
-                                                className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 font-mono text-sm'}
                                                 placeholder={'e.g. ghcr.io/pterodactyl/yolks:java_17'}
                                             />
                                         ) : (
-                                            <select
+                                            <Select
                                                 value={image}
                                                 onChange={(e) => {
                                                     setImage(e.target.value);
                                                     autosaveSettings({ image: e.target.value });
                                                 }}
                                                 required
-                                                className={'bg-neutral-800 text-neutral-200 px-3 py-2.5 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 font-mono text-sm'}
                                             >
                                                 {Object.entries(eggs.find(eg => eg.id === eggId)?.docker_images || {}).map(([img, label]) => (
-                                                    <option key={img} value={img}>{label} ({img})</option>
+                                                    <option key={img} value={img} className={'bg-neutral-800 text-neutral-200'}>{label} ({img})</option>
                                                 ))}
-                                            </select>
+                                            </Select>
                                         )}
                                     </div>
 
                                     <div className={'md:col-span-2'}>
                                         <div className={'flex justify-between items-center mb-3'}>
-                                            <label className={'block text-xs text-neutral-400 uppercase font-bold'}>Environment Variables</label>
+                                            <Label className={'!mb-0'}>Environment Variables</Label>
                                             <button 
                                                 type={'button'} 
                                                 onClick={addEnvRow}
@@ -415,21 +410,21 @@ export default () => {
                                         <div className={'space-y-2'}>
                                             {envRows.map((row, idx) => (
                                                 <div key={idx} className={'flex items-center space-x-2'}>
-                                                    <input
+                                                    <Input
                                                         type={'text'}
                                                         value={row.key}
                                                         onChange={(e) => handleEnvRowChange(idx, 'key', e.target.value)}
                                                         onBlur={() => autosaveSettings()}
                                                         placeholder={'KEY'}
-                                                        className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-1/3 border border-neutral-700 focus:outline-none focus:border-cyan-500 font-mono text-xs'}
+                                                        className={'!p-2.5 font-mono text-xs'}
                                                     />
-                                                    <input
+                                                    <Input
                                                         type={'text'}
                                                         value={row.value}
                                                         onChange={(e) => handleEnvRowChange(idx, 'value', e.target.value)}
                                                         onBlur={() => autosaveSettings()}
                                                         placeholder={'value'}
-                                                        className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded flex-1 border border-neutral-700 focus:outline-none focus:border-cyan-500 font-mono text-xs'}
+                                                        className={'!p-2.5 font-mono text-xs'}
                                                     />
                                                     <button 
                                                         type={'button'} 

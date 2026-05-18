@@ -5,6 +5,9 @@ import http from '@/api/http';
 import PageContentBlock from '@/components/elements/PageContentBlock';
 import Spinner from '@/components/elements/Spinner';
 import SubNavigation from '@/components/elements/SubNavigation';
+import Input, { Textarea } from '@/components/elements/Input';
+import Label from '@/components/elements/Label';
+import Select from '@/components/elements/Select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faServer, faCogs, faSave, faNetworkWired, faArrowAltCircleUp } from '@fortawesome/free-solid-svg-icons';
 import FlashMessageRender from '@/components/FlashMessageRender';
@@ -215,85 +218,78 @@ export default () => {
 
                                 <div className={'grid grid-cols-1 md:grid-cols-2 gap-6'}>
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Group Name</label>
-                                        <input
+                                        <Label>Group Name</Label>
+                                        <Input
                                             type={'text'}
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
 
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Base Template</label>
-                                        <select
+                                        <Label>Base Template</Label>
+                                        <Select
                                             value={templateId}
                                             onChange={(e) => setTemplateId(e.target.value)}
                                             required
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2.5 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         >
-                                            <option value="" disabled>Select a Template</option>
+                                            <option value="" disabled className={'bg-neutral-800 text-neutral-200'}>Select a Template</option>
                                             {templates?.map((t: any) => (
-                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                                <option key={t.id} value={t.id} className={'bg-neutral-800 text-neutral-200'}>{t.name}</option>
                                             ))}
-                                        </select>
+                                        </Select>
                                     </div>
 
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Minimum Server Instances</label>
-                                        <input
+                                        <Label>Minimum Server Instances</Label>
+                                        <Input
                                             type={'number'}
                                             value={minServers}
                                             onChange={(e) => setMinServers(parseInt(e.target.value) || 0)}
                                             required
                                             min={0}
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Maximum Server Instances</label>
-                                        <input
+                                        <Label>Maximum Server Instances</Label>
+                                        <Input
                                             type={'number'}
                                             value={maxServers}
                                             onChange={(e) => setMaxServers(parseInt(e.target.value) || 1)}
                                             required
                                             min={1}
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
 
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Target Free Slots</label>
-                                        <input
+                                        <Label>Target Free Slots</Label>
+                                        <Input
                                             type={'number'}
                                             value={targetFreeSlots}
                                             onChange={(e) => setTargetFreeSlots(parseInt(e.target.value) || 0)}
                                             required
                                             min={0}
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
                                     <div>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>Scale-down Cooldown (Seconds)</label>
-                                        <input
+                                        <Label>Scale-down Cooldown (Seconds)</Label>
+                                        <Input
                                             type={'number'}
                                             value={scaleDownCooldown}
                                             onChange={(e) => setScaleDownCooldown(parseInt(e.target.value) || 120)}
                                             required
                                             min={10}
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
                                         />
                                     </div>
 
                                     <div className={'md:col-span-2'}>
-                                        <label className={'block text-xs text-neutral-400 uppercase font-bold mb-2'}>JSON Metadata / Routing Tags</label>
-                                        <textarea
+                                        <Label>JSON Metadata / Routing Tags</Label>
+                                        <Textarea
                                             value={metadata}
                                             onChange={(e) => setMetadata(e.target.value)}
                                             rows={4}
                                             placeholder={'{"type": "competitive-pvp", "map": "desert-arena"}'}
-                                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 font-mono text-sm'}
                                         />
                                     </div>
                                 </div>
