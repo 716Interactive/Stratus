@@ -94,6 +94,66 @@ object FileService {
         }
     }
 
+    fun renameFile(basePath: String, oldPath: String, newPath: String) {
+        val oldFile = File(basePath, oldPath.trimStart('/')).canonicalFile
+        val newFile = File(basePath, newPath.trimStart('/')).canonicalFile
+        validatePath(basePath, oldFile)
+        validatePath(basePath, newFile)
+        if (oldFile.exists()) {
+            oldFile.renameTo(newFile)
+        }
+    }
+
+    fun decompressFile(basePath: String, filePath: String) {
+        val file = File(basePath, filePath.trimStart('/')).canonicalFile
+        validatePath(basePath, file)
+        if (file.exists() && file.name.endsWith(".zip", ignoreCase = true)) {
+            val parentPath = file.parentFile.canonicalFile
+            val parentRelative = parentPath.absolutePath.substring(File(basePath).canonicalFile.absolutePath.length)
+            file.inputStream().use { input ->
+                extractZip(basePath, parentRelative, input)
+            }
+        }
+    }
+
+    fun compressFiles(basePath: String, directory: String, files: List<String>): String {
+        val dir = File(basePath, directory.trimStart('/')).canonicalFile
+        validatePath(basePath, dir)
+        val archiveName = "archive-${System.currentTimeMillis() / 1000}.zip"
+        val archiveFile = File(dir, archiveName)
+        
+        java.io.FileOutputStream(archiveFile).use { fos ->
+            java.util.zip.ZipOutputStream(fos).use { zos ->
+                files.forEach { fileName ->
+                    val fileToCompress = File(dir, fileName).canonicalFile
+                    validatePath(basePath, fileToCompress)
+                    compressRecursive(basePath, zos, fileToCompress, fileName)
+                }
+            }
+        }
+        return archiveName
+    }
+
+    private fun compressRecursive(basePath: String, zos: java.util.zip.ZipOutputStream, file: File, path: String) {
+        if (file.isDirectory) {
+            val files = file.listFiles() ?: return
+            if (files.isEmpty()) {
+                zos.putNextEntry(java.util.zip.ZipEntry("$path/"))
+                zos.closeEntry()
+            } else {
+                files.forEach { subFile ->
+                    compressRecursive(basePath, zos, subFile, "$path/${subFile.name}")
+                }
+            }
+        } else {
+            zos.putNextEntry(java.util.zip.ZipEntry(path))
+            file.inputStream().use { input ->
+                input.copyTo(zos)
+            }
+            zos.closeEntry()
+        }
+    }
+
     fun extractZip(basePath: String, subPath: String, inputStream: java.io.InputStream) {
         val targetDir = File(basePath, subPath.trimStart('/')).canonicalFile
         validatePath(basePath, targetDir)

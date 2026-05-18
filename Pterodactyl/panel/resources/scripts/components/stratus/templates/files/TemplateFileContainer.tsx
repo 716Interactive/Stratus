@@ -5,7 +5,20 @@ import getTemplateFiles from '@/api/stratus/templates/getTemplateFiles';
 import Spinner from '@/components/elements/Spinner';
 import tw from 'twin.macro';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFolder, faFileAlt, faFileArchive, faTrashAlt, faUpload, faFolderPlus, faFileMedical } from '@fortawesome/free-solid-svg-icons';
+import { 
+    faFolder, 
+    faFileAlt, 
+    faFileArchive, 
+    faTrashAlt, 
+    faUpload, 
+    faFolderPlus, 
+    faFileMedical,
+    faEllipsisH,
+    faPencilAlt,
+    faLevelUpAlt,
+    faBoxOpen,
+    faFileDownload
+} from '@fortawesome/free-solid-svg-icons';
 import { bytesToString } from '@/lib/formatters';
 import { differenceInHours, format, formatDistanceToNow } from 'date-fns';
 import http from '@/api/http';
@@ -13,6 +26,7 @@ import Modal from '@/components/elements/Modal';
 import Button from '@/components/elements/Button';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
+import DropdownMenu from '@/components/elements/DropdownMenu';
 import { FileObject } from '@/api/server/files/loadDirectory';
 import styles from '@/components/server/files/style.module.css';
 
@@ -35,6 +49,16 @@ export default () => {
     // Create folder modal state
     const [folderModalVisible, setFolderModalVisible] = useState(false);
     const [folderName, setFolderName] = useState('');
+
+    // Rename Modal State
+    const [renameModalVisible, setRenameModalVisible] = useState(false);
+    const [renameTarget, setRenameTarget] = useState<FileObject | null>(null);
+    const [renameValue, setRenameValue] = useState('');
+
+    // Move Modal State
+    const [moveModalVisible, setMoveModalVisible] = useState(false);
+    const [moveTarget, setMoveTarget] = useState<FileObject | null>(null);
+    const [moveValue, setMoveValue] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [extractZip, setExtractZip] = useState(true);
@@ -100,9 +124,81 @@ export default () => {
         .then(() => setLoading(false));
     };
 
-    const handleDelete = (fileName: string, e: React.MouseEvent) => {
+    const handleRename = (e: React.FormEvent) => {
         e.preventDefault();
-        e.stopPropagation();
+        if (!renameTarget || !renameValue.trim()) return;
+
+        setLoading(true);
+        const fromPath = joinPaths(directory, renameTarget.name);
+        const toPath = joinPaths(directory, renameValue.trim());
+
+        http.post(`/api/client/stratus/templates/${id}/files/rename`, { from: fromPath, to: toPath })
+        .then(() => {
+            setRenameModalVisible(false);
+            setRenameTarget(null);
+            mutate();
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Rename failed: ' + err.message);
+        })
+        .then(() => setLoading(false));
+    };
+
+    const handleMove = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!moveTarget || !moveValue.trim()) return;
+
+        setLoading(true);
+        const fromPath = joinPaths(directory, moveTarget.name);
+        const toPath = joinPaths(moveValue.trim(), moveTarget.name);
+
+        http.post(`/api/client/stratus/templates/${id}/files/rename`, { from: fromPath, to: toPath })
+        .then(() => {
+            setMoveModalVisible(false);
+            setMoveTarget(null);
+            mutate();
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Move failed: ' + err.message);
+        })
+        .then(() => setLoading(false));
+    };
+
+    const handleArchive = (fileName: string) => {
+        setLoading(true);
+        http.post(`/api/client/stratus/templates/${id}/files/compress`, { directory, files: [fileName] })
+        .then(() => mutate())
+        .catch(err => {
+            console.error(err);
+            alert('Compression failed: ' + err.message);
+        })
+        .then(() => setLoading(false));
+    };
+
+    const handleUnarchive = (fileName: string) => {
+        setLoading(true);
+        const filePath = joinPaths(directory, fileName);
+        http.post(`/api/client/stratus/templates/${id}/files/decompress`, { file: filePath })
+        .then(() => mutate())
+        .catch(err => {
+            console.error(err);
+            alert('Decompression failed: ' + err.message);
+        })
+        .then(() => setLoading(false));
+    };
+
+    const handleDownload = (fileName: string) => {
+        const filePath = joinPaths(directory, fileName);
+        window.location.href = `/api/client/stratus/templates/${id}/files/download?file=${encodeURIComponent(filePath)}`;
+    };
+
+    const handleDelete = (fileName: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         if (!confirm(`Are you sure you want to delete ${fileName}?`)) return;
 
         setLoading(true);
@@ -134,6 +230,20 @@ export default () => {
         .catch(err => {
             console.error(err);
             alert('Delete failed: ' + err.message);
+        })
+        .then(() => setLoading(false));
+    };
+
+    const handleMassCompress = () => {
+        setLoading(true);
+        http.post(`/api/client/stratus/templates/${id}/files/compress`, { directory, files: selectedFiles })
+        .then(() => {
+            setSelectedFiles([]);
+            mutate();
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Compress failed: ' + err.message);
         })
         .then(() => setLoading(false));
     };
@@ -170,6 +280,45 @@ export default () => {
                     <div className={'flex justify-end space-x-2'}>
                         <Button type={'button'} color={'grey'} onClick={() => setFolderModalVisible(false)}>Cancel</Button>
                         <Button type={'submit'}>Create</Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Rename Modal */}
+            <Modal visible={renameModalVisible} onDismissed={() => setRenameModalVisible(false)}>
+                <form onSubmit={handleRename}>
+                    <h2 className={'text-xl font-header mb-4 text-neutral-200'}>Rename File / Folder</h2>
+                    <input
+                        type={'text'}
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        placeholder={'New Name'}
+                        className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 mb-4'}
+                        autoFocus
+                    />
+                    <div className={'flex justify-end space-x-2'}>
+                        <Button type={'button'} color={'grey'} onClick={() => setRenameModalVisible(false)}>Cancel</Button>
+                        <Button type={'submit'}>Rename</Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Move Modal */}
+            <Modal visible={moveModalVisible} onDismissed={() => setMoveModalVisible(false)}>
+                <form onSubmit={handleMove}>
+                    <h2 className={'text-xl font-header mb-4 text-neutral-200'}>Move File / Folder</h2>
+                    <p className={'text-xs text-neutral-400 mb-3'}>Specify target directory path relative to template root.</p>
+                    <input
+                        type={'text'}
+                        value={moveValue}
+                        onChange={(e) => setMoveValue(e.target.value)}
+                        placeholder={'e.g. /config/subfolder'}
+                        className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 mb-4'}
+                        autoFocus
+                    />
+                    <div className={'flex justify-end space-x-2'}>
+                        <Button type={'button'} color={'grey'} onClick={() => setMoveModalVisible(false)}>Cancel</Button>
+                        <Button type={'submit'}>Move</Button>
                     </div>
                 </form>
             </Modal>
@@ -268,94 +417,159 @@ export default () => {
                     {sortedFilesList.length === 0 && (
                         <p css={tw`text-sm text-neutral-400 text-center py-8`}>This directory seems to be empty.</p>
                     )}
-                    {sortedFilesList.map(file => (
-                        <div
-                            key={file.name}
-                            className={styles.file_row}
-                        >
-                            <input
-                                type={'checkbox'}
-                                css={tw`rounded border-neutral-600 bg-neutral-800 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-neutral-900 mx-4`}
-                                checked={selectedFiles.includes(file.name)}
-                                onChange={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedFiles(prev => e.target.checked ? [...prev, file.name] : prev.filter(n => n !== file.name));
-                                }}
-                            />
-                            {file.isFile ? (
-                                file.isEditable() ? (
-                                    <Link 
-                                        to={`/stratus/templates/${id}/files/edit#${joinPaths(directory, file.name)}`}
+                    {sortedFilesList.map(file => {
+                        const isArchive = file.name.endsWith('.zip') || file.name.endsWith('.tar.gz');
+                        return (
+                            <div
+                                key={file.name}
+                                className={styles.file_row}
+                            >
+                                <input
+                                    type={'checkbox'}
+                                    css={tw`rounded border-neutral-600 bg-neutral-800 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-neutral-900 mx-4`}
+                                    checked={selectedFiles.includes(file.name)}
+                                    onChange={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedFiles(prev => e.target.checked ? [...prev, file.name] : prev.filter(n => n !== file.name));
+                                    }}
+                                />
+                                {file.isFile ? (
+                                    file.isEditable() ? (
+                                        <Link 
+                                            to={`/stratus/templates/${id}/files/edit#${joinPaths(directory, file.name)}`}
+                                            className={styles.details}
+                                        >
+                                            <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
+                                                <FontAwesomeIcon
+                                                    icon={isArchive ? faFileArchive : faFileAlt}
+                                                />
+                                            </div>
+                                            <div css={tw`flex-1 truncate`}>{file.name}</div>
+                                            <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>{bytesToString(file.size)}</div>
+                                            <div css={tw`w-1/5 text-right mr-4 hidden md:block`} title={file.modifiedAt.toString()}>
+                                                {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
+                                                    ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
+                                                    : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                                            </div>
+                                        </Link>
+                                    ) : (
+                                        <div className={styles.details}>
+                                            <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
+                                                <FontAwesomeIcon
+                                                    icon={isArchive ? faFileArchive : faFileAlt}
+                                                />
+                                            </div>
+                                            <div css={tw`flex-1 truncate text-neutral-500`}>{file.name}</div>
+                                            <div css={tw`w-1/6 text-right mr-4 hidden sm:block text-neutral-500`}>{bytesToString(file.size)}</div>
+                                            <div css={tw`w-1/5 text-right mr-4 hidden md:block text-neutral-500`} title={file.modifiedAt.toString()}>
+                                                {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
+                                                    ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
+                                                    : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                                            </div>
+                                        </div>
+                                    )
+                                ) : (
+                                    <a 
+                                        href={`#${joinPaths(directory, file.name)}`} 
                                         className={styles.details}
                                     >
                                         <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
-                                            <FontAwesomeIcon
-                                                icon={file.name.endsWith('.zip') || file.name.endsWith('.tar.gz') ? faFileArchive : faFileAlt}
-                                            />
+                                            <FontAwesomeIcon icon={faFolder} />
                                         </div>
-                                        <div css={tw`flex-1 truncate`}>{file.name}</div>
-                                        <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>{bytesToString(file.size)}</div>
+                                        <div css={tw`flex-1 truncate text-cyan-400 font-medium`}>{file.name}</div>
+                                        <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>--</div>
                                         <div css={tw`w-1/5 text-right mr-4 hidden md:block`} title={file.modifiedAt.toString()}>
                                             {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
                                                 ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
                                                 : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
                                         </div>
-                                    </Link>
-                                ) : (
-                                    <div className={styles.details}>
-                                        <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
-                                            <FontAwesomeIcon
-                                                icon={file.name.endsWith('.zip') || file.name.endsWith('.tar.gz') ? faFileArchive : faFileAlt}
-                                            />
+                                    </a>
+                                )}
+                                <div css={tw`flex items-center`}>
+                                    <DropdownMenu
+                                        renderToggle={(onClick) => (
+                                            <button
+                                                onClick={onClick}
+                                                css={tw`text-neutral-500 hover:text-neutral-300 p-2 mr-2 transition-colors focus:outline-none`}
+                                            >
+                                                <FontAwesomeIcon icon={faEllipsisH} />
+                                            </button>
+                                        )}
+                                    >
+                                        <div 
+                                            onClick={() => {
+                                                setRenameTarget(file);
+                                                setRenameValue(file.name);
+                                                setRenameModalVisible(true);
+                                            }} 
+                                            css={tw`p-2 flex items-center rounded hover:bg-neutral-800 hover:text-neutral-100 cursor-pointer text-xs text-neutral-300`}
+                                        >
+                                            <FontAwesomeIcon icon={faPencilAlt} css={tw`text-xs`} fixedWidth />
+                                            <span css={tw`ml-2`}>Rename</span>
                                         </div>
-                                        <div css={tw`flex-1 truncate text-neutral-500`}>{file.name}</div>
-                                        <div css={tw`w-1/6 text-right mr-4 hidden sm:block text-neutral-500`}>{bytesToString(file.size)}</div>
-                                        <div css={tw`w-1/5 text-right mr-4 hidden md:block text-neutral-500`} title={file.modifiedAt.toString()}>
-                                            {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
-                                                ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
-                                                : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                                        <div 
+                                            onClick={() => {
+                                                setMoveTarget(file);
+                                                setMoveValue(directory);
+                                                setMoveModalVisible(true);
+                                            }} 
+                                            css={tw`p-2 flex items-center rounded hover:bg-neutral-800 hover:text-neutral-100 cursor-pointer text-xs text-neutral-300`}
+                                        >
+                                            <FontAwesomeIcon icon={faLevelUpAlt} css={tw`text-xs`} fixedWidth />
+                                            <span css={tw`ml-2`}>Move</span>
                                         </div>
-                                    </div>
-                                )
-                            ) : (
-                                <a 
-                                    href={`#${joinPaths(directory, file.name)}`} 
-                                    className={styles.details}
-                                >
-                                    <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
-                                        <FontAwesomeIcon icon={faFolder} />
-                                    </div>
-                                    <div css={tw`flex-1 truncate text-cyan-400 font-medium`}>{file.name}</div>
-                                    <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>--</div>
-                                    <div css={tw`w-1/5 text-right mr-4 hidden md:block`} title={file.modifiedAt.toString()}>
-                                        {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
-                                            ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
-                                            : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
-                                    </div>
-                                </a>
-                            )}
-                            {file.name !== '.keep' && (
-                                <button 
-                                    onClick={(e) => handleDelete(file.name, e)}
-                                    css={tw`text-neutral-500 hover:text-red-500 p-2 mr-4 transition-colors focus:outline-none`}
-                                    title={'Delete'}
-                                >
-                                    <FontAwesomeIcon icon={faTrashAlt} />
-                                </button>
-                            )}
-                        </div>
-                    ))}
+                                        {isArchive ? (
+                                            <div 
+                                                onClick={() => handleUnarchive(file.name)} 
+                                                css={tw`p-2 flex items-center rounded hover:bg-neutral-800 hover:text-neutral-100 cursor-pointer text-xs text-neutral-300`}
+                                            >
+                                                <FontAwesomeIcon icon={faBoxOpen} css={tw`text-xs`} fixedWidth />
+                                                <span css={tw`ml-2`}>Unarchive</span>
+                                            </div>
+                                        ) : (
+                                            <div 
+                                                onClick={() => handleArchive(file.name)} 
+                                                css={tw`p-2 flex items-center rounded hover:bg-neutral-800 hover:text-neutral-100 cursor-pointer text-xs text-neutral-300`}
+                                            >
+                                                <FontAwesomeIcon icon={faFileArchive} css={tw`text-xs`} fixedWidth />
+                                                <span css={tw`ml-2`}>Archive</span>
+                                            </div>
+                                        )}
+                                        {file.isFile && (
+                                            <div 
+                                                onClick={() => handleDownload(file.name)} 
+                                                css={tw`p-2 flex items-center rounded hover:bg-neutral-800 hover:text-neutral-100 cursor-pointer text-xs text-neutral-300`}
+                                            >
+                                                <FontAwesomeIcon icon={faFileDownload} css={tw`text-xs`} fixedWidth />
+                                                <span css={tw`ml-2`}>Download</span>
+                                            </div>
+                                        )}
+                                        <div 
+                                            onClick={() => handleDelete(file.name)} 
+                                            css={tw`p-2 flex items-center rounded hover:bg-red-950 hover:text-red-300 cursor-pointer text-xs text-red-400 border-t border-neutral-800/50`}
+                                        >
+                                            <FontAwesomeIcon icon={faTrashAlt} css={tw`text-xs`} fixedWidth />
+                                            <span css={tw`ml-2`}>Delete</span>
+                                        </div>
+                                    </DropdownMenu>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
             {selectedFiles.length > 0 && (
                 <div className={'fixed bottom-0 mb-6 flex justify-center w-full z-50'} style={{ left: 0 }}>
                     <div css={tw`flex items-center space-x-4 pointer-events-auto rounded p-4 bg-black/80 border border-neutral-700 shadow-2xl`}>
-                        <span css={tw`text-sm text-neutral-350 mr-2`}>
+                        <span css={tw`text-sm text-neutral-300 mr-2`}>
                             {selectedFiles.length} item{selectedFiles.length > 1 ? 's' : ''} selected
                         </span>
                         <Button color={'grey'} onClick={() => setSelectedFiles([])} size={'small'}>
                             Deselect
+                        </Button>
+                        <Button color={'grey'} onClick={handleMassCompress} size={'small'}>
+                            Archive
                         </Button>
                         <Button color={'red'} onClick={handleMassDelete} size={'small'}>
                             Delete
