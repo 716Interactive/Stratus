@@ -49,7 +49,11 @@ export default () => {
         const path = hashToPath(hash);
         setFilename(path.split('/').pop() || '');
 
-        http.get(`/api/client/stratus/templates/${id}/files/contents`, { params: { file: path } })
+        http.get(`/api/client/stratus/templates/${id}/files/contents`, {
+                params: { file: path },
+                transformResponse: (res) => res,
+                responseType: 'text',
+            })
             .then(({ data }) => setContent(data))
             .catch((err) => {
                 console.error(err);
