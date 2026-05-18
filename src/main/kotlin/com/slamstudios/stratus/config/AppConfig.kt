@@ -88,9 +88,10 @@ data class AppConfig(
                     port     = getProp("stratus.redis.port", "redis.port")?.toInt() ?: 6379,
                     password = getProp("stratus.redis.password", "redis.password")?.takeIf { it.isNotBlank() },
                 ),
-                pterodactyl = PterodactylConfig(
+                 pterodactyl = PterodactylConfig(
                     baseUrl = getProp("stratus.pterodactyl.baseUrl", "pterodactyl.baseUrl") ?: "http://localhost",
                     apiKey  = getProp("stratus.pterodactyl.apiKey", "pterodactyl.apiKey") ?: "changeme",
+                    clientApiKey = getProp("stratus.pterodactyl.clientApiKey", "pterodactyl.clientApiKey")?.takeIf { it.isNotBlank() },
                     ownerId = getProp("stratus.pterodactyl.ownerId", "pterodactyl.ownerId")?.toInt() ?: 1,
                     orchestratorUrl = getProp("stratus.pterodactyl.orchestratorUrl", "pterodactyl.orchestratorUrl") ?: "http://localhost:8081",
                 ),
@@ -119,6 +120,7 @@ data class RedisConfig(
 data class PterodactylConfig(
     val baseUrl: String,
     val apiKey: String,
+    val clientApiKey: String?,
     val ownerId: Int,
     val orchestratorUrl: String,
 )

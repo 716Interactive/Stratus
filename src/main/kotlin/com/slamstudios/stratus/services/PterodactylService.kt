@@ -61,10 +61,12 @@ object PterodactylService {
     private lateinit var client: HttpClient
     private lateinit var baseUrl: String
     private lateinit var apiKey: String
+    private var clientApiKey: String? = null
 
     fun init(config: PterodactylConfig) {
         baseUrl = config.baseUrl.removeSuffix("/")
         apiKey = config.apiKey
+        clientApiKey = config.clientApiKey
         
         client = HttpClient(CIO) {
             install(ContentNegotiation) {
@@ -115,11 +117,15 @@ object PterodactylService {
 
     suspend fun sendPowerSignal(serverIdentifier: String, signal: String) {
         try {
+            val token = clientApiKey ?: apiKey
             val response = client.post("/api/client/servers/$serverIdentifier/power") {
+                headers {
+                    set("Authorization", "Bearer $token")
+                }
                 setBody(mapOf("signal" to signal))
             }
             if (response.status.value !in 200..299) {
-                logger.error("Failed to send power signal $signal to server $serverIdentifier: ${response.status}")
+                logger.error("Failed to send power signal $signal to server $serverIdentifier: ${response.status} - ${response.bodyAsText()}")
             }
         } catch (e: Exception) {
             logger.error("Exception sending power signal $signal to server $serverIdentifier", e)
