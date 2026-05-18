@@ -89,12 +89,14 @@ object PterodactylService {
 
     suspend fun deleteServer(pteroId: Int) {
         try {
-            val response = client.delete("/api/application/servers/$pteroId")
+            val response = client.delete("/api/application/servers/$pteroId/force")
             if (response.status.value !in 200..299) {
-                logger.error("Failed to delete Pterodactyl server $pteroId: ${response.status}")
+                logger.error("Failed to force delete Pterodactyl server $pteroId: ${response.status}")
+            } else {
+                logger.info("Successfully force deleted Pterodactyl server $pteroId")
             }
         } catch (e: Exception) {
-            logger.error("Exception while deleting Pterodactyl server $pteroId", e)
+            logger.error("Exception while force deleting Pterodactyl server $pteroId", e)
         }
     }
 
