@@ -182,6 +182,8 @@ object PterodactylService {
             put("egg", eggId)
             put("docker_image", image)
             put("startup", startup)
+            put("skip_scripts", true)
+            put("start_on_completion", false)
             put("environment", buildJsonObject {
                 // 1. Pre-fill egg's default variables
                 eggVariables.forEach { (k, v) -> put(k, v) }
