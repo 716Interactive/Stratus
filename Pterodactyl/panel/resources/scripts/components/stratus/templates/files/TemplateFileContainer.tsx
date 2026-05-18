@@ -11,8 +11,6 @@ import {
     faFileArchive, 
     faTrashAlt, 
     faUpload, 
-    faFolderPlus, 
-    faFileMedical,
     faEllipsisH,
     faPencilAlt,
     faLevelUpAlt,
@@ -24,7 +22,7 @@ import { bytesToString } from '@/lib/formatters';
 import { differenceInHours, format, formatDistanceToNow } from 'date-fns';
 import http from '@/api/http';
 import Modal from '@/components/elements/Modal';
-import Button from '@/components/elements/Button';
+import { Button } from '@/components/elements/button/index';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
 import DropdownMenu from '@/components/elements/DropdownMenu';
@@ -33,9 +31,13 @@ import styles from '@/components/server/files/style.module.css';
 import Portal from '@/components/elements/Portal';
 import Fade from '@/components/elements/Fade';
 import { Dialog } from '@/components/elements/dialog';
-import useEventListener from '@/plugins/useEventListener';
 import { CSSTransition } from 'react-transition-group';
 import { ModalMask } from '@/components/elements/Modal';
+import { FileActionCheckbox } from '@/components/server/files/SelectFileCheckbox';
+import Field from '@/components/elements/Field';
+import { Form, Formik, FormikHelpers } from 'formik';
+import { object, string } from 'yup';
+import Code from '@/components/elements/Code';
 
 const joinPaths = (a: string, b: string) => (a === '/' ? '/' + b : a + '/' + b).replace(/\/+/g, '/');
 
@@ -65,24 +67,20 @@ export default () => {
 
     // Create folder modal state
     const [folderModalVisible, setFolderModalVisible] = useState(false);
-    const [folderName, setFolderName] = useState('');
 
     // Rename Modal State
     const [renameModalVisible, setRenameModalVisible] = useState(false);
     const [renameTarget, setRenameTarget] = useState<FileObject | null>(null);
-    const [renameValue, setRenameValue] = useState('');
 
     // Move Modal State
     const [moveModalVisible, setMoveModalVisible] = useState(false);
     const [moveTarget, setMoveTarget] = useState<FileObject | null>(null);
-    const [moveValue, setMoveValue] = useState('');
 
     // Dialog.Confirm Deletion States
     const [fileToDelete, setFileToDelete] = useState<string | null>(null);
     const [showMassDeleteConfirm, setShowMassDeleteConfirm] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [extractZip, setExtractZip] = useState(true);
 
     const dropdownRefs = useRef<Record<string, DropdownMenu | null>>({});
 
@@ -132,7 +130,7 @@ export default () => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('directory', directory);
-            formData.append('extract', extractZip ? 'true' : 'false');
+            formData.append('extract', 'true');
 
             return http.post(`/api/client/stratus/templates/${id}/files/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
@@ -156,36 +154,31 @@ export default () => {
         handleFileSubmission(e.target.files);
     };
 
-    const handleCreateFolder = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!folderName.trim()) return;
+    const handleCreateFolder = ({ directoryName }: { directoryName: string }, { setSubmitting }: FormikHelpers<{ directoryName: string }>) => {
+        if (!directoryName.trim()) return;
 
-        setLoading(true);
-        const targetPath = joinPaths(directory, `${folderName.trim()}/.keep`);
+        const targetPath = joinPaths(directory, `${directoryName.trim()}/.keep`);
 
         http.post(`/api/client/stratus/templates/${id}/files/write`, '', {
             params: { file: targetPath },
             headers: { 'Content-Type': 'text/plain' }
         })
         .then(() => {
-            setFolderName('');
             setFolderModalVisible(false);
             mutate();
         })
         .catch(err => {
             console.error(err);
             alert('Failed to create folder: ' + err.message);
-        })
-        .then(() => setLoading(false));
+            setSubmitting(false);
+        });
     };
 
-    const handleRename = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!renameTarget || !renameValue.trim()) return;
+    const handleRename = ({ name }: { name: string }, { setSubmitting }: FormikHelpers<{ name: string }>) => {
+        if (!renameTarget || !name.trim()) return;
 
-        setLoading(true);
         const fromPath = joinPaths(directory, renameTarget.name);
-        const toPath = joinPaths(directory, renameValue.trim());
+        const toPath = joinPaths(directory, name.trim());
 
         http.post(`/api/client/stratus/templates/${id}/files/rename`, { from: fromPath, to: toPath })
         .then(() => {
@@ -196,17 +189,15 @@ export default () => {
         .catch(err => {
             console.error(err);
             alert('Rename failed: ' + err.message);
-        })
-        .then(() => setLoading(false));
+            setSubmitting(false);
+        });
     };
 
-    const handleMove = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!moveTarget || !moveValue.trim()) return;
+    const handleMove = ({ name }: { name: string }, { setSubmitting }: FormikHelpers<{ name: string }>) => {
+        if (!moveTarget || !name.trim()) return;
 
-        setLoading(true);
         const fromPath = joinPaths(directory, moveTarget.name);
-        const toPath = joinPaths(moveValue.trim(), moveTarget.name);
+        const toPath = joinPaths(name.trim(), moveTarget.name);
 
         http.post(`/api/client/stratus/templates/${id}/files/rename`, { from: fromPath, to: toPath })
         .then(() => {
@@ -217,8 +208,8 @@ export default () => {
         .catch(err => {
             console.error(err);
             alert('Move failed: ' + err.message);
-        })
-        .then(() => setLoading(false));
+            setSubmitting(false);
+        });
     };
 
     const handleArchive = (fileName: string) => {
@@ -382,71 +373,96 @@ export default () => {
 
             {/* Create Folder Modal */}
             <Modal visible={folderModalVisible} onDismissed={() => setFolderModalVisible(false)}>
-                <form onSubmit={handleCreateFolder}>
-                    <h2 className={'text-xl font-header mb-4 text-neutral-200'}>Create Folder</h2>
-                    <input
-                        type={'text'}
-                        value={folderName}
-                        onChange={(e) => setFolderName(e.target.value)}
-                        placeholder={'Folder Name'}
-                        className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 mb-4'}
-                        autoFocus
-                    />
-                    <div className={'flex justify-end space-x-2'}>
-                        <Button type={'button'} color={'grey'} onClick={() => setFolderModalVisible(false)}>Cancel</Button>
-                        <Button type={'submit'}>Create</Button>
-                    </div>
-                </form>
+                <Formik
+                    onSubmit={handleCreateFolder}
+                    initialValues={{ directoryName: '' }}
+                    validationSchema={object().shape({
+                        directoryName: string().required('A valid directory name must be provided.'),
+                    })}
+                >
+                    {({ isSubmitting, submitForm, values }) => (
+                        <Form css={tw`m-0`}>
+                            <h2 css={tw`text-xl font-header mb-4 text-neutral-200`}>Create Directory</h2>
+                            <Field autoFocus id={'directoryName'} name={'directoryName'} label={'Directory Name'} />
+                            <p css={tw`mt-2 text-xs text-neutral-400`}>
+                                This directory will be created as&nbsp;
+                                <Code css={tw`bg-neutral-900 px-1 py-0.5 rounded font-mono text-[11px]`}>
+                                    /home/template/
+                                    <span css={tw`text-cyan-200`}>
+                                        {joinPaths(directory, values.directoryName).replace(/^(\.\.\/|\/)+/, '')}
+                                    </span>
+                                </Code>
+                            </p>
+                            <div css={tw`flex justify-end space-x-2 mt-6`}>
+                                <Button.Text type={'button'} onClick={() => setFolderModalVisible(false)}>Cancel</Button.Text>
+                                <Button type={'button'} onClick={submitForm} disabled={isSubmitting}>Create</Button>
+                            </div>
+                        </Form>
+                    )}
+                </Formik>
             </Modal>
 
             {/* Rename Modal */}
             <Modal visible={renameModalVisible} onDismissed={() => setRenameModalVisible(false)}>
-                <form onSubmit={handleRename}>
-                    <h2 className={'text-xl font-header mb-4 text-neutral-200'}>Rename File / Folder</h2>
-                    <input
-                        type={'text'}
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        placeholder={'New Name'}
-                        className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 mb-4'}
-                        autoFocus
-                    />
-                    <div className={'flex justify-end space-x-2'}>
-                        <Button type={'button'} color={'grey'} onClick={() => setRenameModalVisible(false)}>Cancel</Button>
-                        <Button type={'submit'}>Rename</Button>
-                    </div>
-                </form>
+                <Formik
+                    onSubmit={handleRename}
+                    initialValues={{ name: renameTarget?.name || '' }}
+                    enableReinitialize
+                    validationSchema={object().shape({
+                        name: string().required('A valid name must be provided.'),
+                    })}
+                >
+                    {({ isSubmitting, submitForm }) => (
+                        <Form css={tw`m-0`}>
+                            <h2 css={tw`text-xl font-header mb-4 text-neutral-200`}>Rename File / Folder</h2>
+                            <Field autoFocus id={'name'} name={'name'} label={'File Name'} />
+                            <div css={tw`flex justify-end space-x-2 mt-6`}>
+                                <Button.Text type={'button'} onClick={() => setRenameModalVisible(false)}>Cancel</Button.Text>
+                                <Button type={'button'} onClick={submitForm} disabled={isSubmitting}>Rename</Button>
+                            </div>
+                        </Form>
+                    )}
+                </Formik>
             </Modal>
 
             {/* Move Modal */}
             <Modal visible={moveModalVisible} onDismissed={() => setMoveModalVisible(false)}>
-                <form onSubmit={handleMove}>
-                    <h2 className={'text-xl font-header mb-4 text-neutral-200'}>Move File / Folder</h2>
-                    <p className={'text-xs text-neutral-400 mb-3'}>Specify target directory path relative to template root.</p>
-                    <input
-                        type={'text'}
-                        value={moveValue}
-                        onChange={(e) => setMoveValue(e.target.value)}
-                        placeholder={'e.g. /config/subfolder'}
-                        className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 mb-4'}
-                        autoFocus
-                    />
-                    <div className={'flex justify-end space-x-2'}>
-                        <Button type={'button'} color={'grey'} onClick={() => setMoveModalVisible(false)}>Cancel</Button>
-                        <Button type={'submit'}>Move</Button>
-                    </div>
-                </form>
+                <Formik
+                    onSubmit={handleMove}
+                    initialValues={{ name: directory }}
+                    enableReinitialize
+                    validationSchema={object().shape({
+                        name: string().required('A valid destination must be provided.'),
+                    })}
+                >
+                    {({ isSubmitting, submitForm, values }) => (
+                        <Form css={tw`m-0`}>
+                            <h2 css={tw`text-xl font-header mb-4 text-neutral-200`}>Move File / Folder</h2>
+                            <Field autoFocus id={'name'} name={'name'} label={'Target Directory'} description={'Specify target directory path relative to template root.'} />
+                            {moveTarget && (
+                                <p css={tw`text-xs mt-2 text-neutral-400`}>
+                                    <strong css={tw`text-neutral-200`}>New location:</strong>
+                                    &nbsp;/home/template/{joinPaths(values.name, moveTarget.name).replace(/^(\.\.\/|\/)+/, '')}
+                                </p>
+                            )}
+                            <div css={tw`flex justify-end space-x-2 mt-6`}>
+                                <Button.Text type={'button'} onClick={() => setMoveModalVisible(false)}>Cancel</Button.Text>
+                                <Button type={'button'} onClick={submitForm} disabled={isSubmitting}>Move</Button>
+                            </div>
+                        </Form>
+                    )}
+                </Formik>
             </Modal>
 
             <ErrorBoundary>
                 <div className={'flex flex-wrap-reverse md:flex-nowrap mb-4 items-center justify-between'}>
                     <div css={tw`flex flex-grow-0 items-center text-sm text-neutral-500 overflow-x-hidden py-2`}>
-                        <input
+                        <FileActionCheckbox
                             type={'checkbox'}
-                            css={tw`mx-4 rounded border-neutral-600 bg-neutral-800 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-neutral-900`}
+                            css={tw`mx-4`}
                             checked={sortedFilesList.length > 0 && selectedFiles.length === sortedFilesList.length}
                             onChange={(e) => {
-                                setSelectedFiles(e.target.checked ? sortedFilesList.map(f => f.name) : []);
+                                setSelectedFiles(e.currentTarget.checked ? sortedFilesList.map(f => f.name) : []);
                             }}
                         />
                         /<span css={tw`px-1 text-neutral-300`}>home</span>/
@@ -483,30 +499,17 @@ export default () => {
                             multiple
                         />
                         
-                        <label className={'flex items-center space-x-2 text-xs text-neutral-400 bg-neutral-700/50 px-3 py-2 rounded border border-neutral-600 cursor-pointer hover:border-neutral-500 transition-colors justify-center md:mr-2'}>
-                            <input
-                                type={'checkbox'}
-                                checked={extractZip}
-                                onChange={(e) => setExtractZip(e.target.checked)}
-                                className={'rounded border-neutral-600 bg-neutral-800 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-neutral-900'}
-                            />
-                            <span>Extract ZIPs</span>
-                        </label>
+                        <Button.Text onClick={() => setFolderModalVisible(true)}>
+                            Create Directory
+                        </Button.Text>
 
-                        <Button onClick={() => setFolderModalVisible(true)} className={'flex items-center space-x-2 justify-center'}>
-                            <FontAwesomeIcon icon={faFolderPlus} />
-                            <span>New Folder</span>
+                        <Button onClick={handleUploadClick}>
+                            Upload
                         </Button>
 
-                        <Button onClick={handleUploadClick} className={'flex items-center space-x-2 justify-center'}>
-                            <FontAwesomeIcon icon={faUpload} />
-                            <span>Upload</span>
-                        </Button>
-
-                        <Link to={`/stratus/templates/${id}/files/new#${directory}`} css={tw`w-full`}>
-                            <Button css={tw`w-full flex items-center space-x-2 justify-center`}>
-                                <FontAwesomeIcon icon={faFileMedical} />
-                                <span>New File</span>
+                        <Link to={`/stratus/templates/${id}/files/new#${directory}`}>
+                            <Button>
+                                New File
                             </Button>
                         </Link>
                     </div>
@@ -518,19 +521,6 @@ export default () => {
             ) : (
                 <CSSTransition classNames={'fade'} timeout={150} appear in>
                     <div css={tw`flex flex-col`}>
-                        {directory !== '/' && (
-                            <a 
-                                href={`#${directory.split('/').slice(0, -1).join('/') || '/'}`}
-                                className={styles.file_row}
-                            >
-                                <div className={styles.details}>
-                                    <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
-                                        <FontAwesomeIcon icon={faFolder} />
-                                    </div>
-                                    <span css={tw`text-cyan-400 font-medium`}>..</span>
-                                </div>
-                            </a>
-                        )}
                         {sortedFilesList.length === 0 && (
                             <p css={tw`text-sm text-neutral-400 text-center py-8`}>This directory seems to be empty.</p>
                         )}
@@ -549,12 +539,11 @@ export default () => {
                                     }}
                                 >
                                     <label css={tw`flex-none px-4 py-2 absolute self-center z-30 cursor-pointer`}>
-                                        <input
+                                        <FileActionCheckbox
                                             type={'checkbox'}
-                                            css={tw`border-neutral-500 bg-transparent rounded text-cyan-600 focus:ring-cyan-500 focus:ring-offset-neutral-900`}
                                             checked={selectedFiles.includes(file.name)}
                                             onChange={(e) => {
-                                                if (e.target.checked) {
+                                                if (e.currentTarget.checked) {
                                                     setSelectedFiles(prev => [...prev, file.name]);
                                                 } else {
                                                     setSelectedFiles(prev => prev.filter(n => n !== file.name));
@@ -605,7 +594,7 @@ export default () => {
                                             <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
                                                 <FontAwesomeIcon icon={faFolder} />
                                             </div>
-                                            <div css={tw`flex-1 truncate text-cyan-400 font-medium`}>{file.name}</div>
+                                            <div css={tw`flex-1 truncate`}>{file.name}</div>
                                             <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>--</div>
                                             <div css={tw`w-1/5 text-right mr-4 hidden md:block`} title={file.modifiedAt.toString()}>
                                                 {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
@@ -620,18 +609,17 @@ export default () => {
                                                 dropdownRefs.current[file.name] = ref;
                                             }}
                                             renderToggle={(onClick) => (
-                                                <button
+                                                <div 
                                                     onClick={onClick}
-                                                    css={tw`text-neutral-500 hover:text-neutral-300 p-2 mr-2 transition-colors focus:outline-none`}
+                                                    css={tw`px-4 py-2 hover:text-white transition-colors cursor-pointer`}
                                                 >
                                                     <FontAwesomeIcon icon={faEllipsisH} />
-                                                </button>
+                                                </div>
                                             )}
                                         >
                                             <div 
                                                 onClick={() => {
                                                     setRenameTarget(file);
-                                                    setRenameValue(file.name);
                                                     setRenameModalVisible(true);
                                                 }} 
                                                 css={tw`p-2 flex items-center rounded hover:bg-neutral-100 hover:text-neutral-700 cursor-pointer text-xs text-neutral-300`}
@@ -642,7 +630,6 @@ export default () => {
                                             <div 
                                                 onClick={() => {
                                                     setMoveTarget(file);
-                                                    setMoveValue(directory);
                                                     setMoveModalVisible(true);
                                                 }} 
                                                 css={tw`p-2 flex items-center rounded hover:bg-neutral-100 hover:text-neutral-700 cursor-pointer text-xs text-neutral-300`}

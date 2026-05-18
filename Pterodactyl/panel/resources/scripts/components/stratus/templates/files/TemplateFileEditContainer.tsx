@@ -14,6 +14,12 @@ import FlashMessageRender from '@/components/FlashMessageRender';
 import useFlash from '@/plugins/useFlash';
 import tw from 'twin.macro';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
+import Modal from '@/components/elements/Modal';
+import { Form, Formik, FormikHelpers } from 'formik';
+import { object, string } from 'yup';
+import Field from '@/components/elements/Field';
+
+const joinPaths = (a: string, b: string) => (a === '/' ? '/' + b : a + '/' + b).replace(/\/+/g, '/');
 
 export default () => {
     const { id, action } = useParams<{ id: string; action: 'new' | 'edit' }>();
@@ -22,6 +28,7 @@ export default () => {
     const [error, setError] = useState('');
     const [mode, setMode] = useState('text/plain');
     const [filename, setFilename] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
 
     const history = useHistory();
     const { hash } = useLocation();
@@ -32,6 +39,8 @@ export default () => {
     useEffect(() => {
         if (action === 'new') {
             setLoading(false);
+            setFilename('');
+            setContent('');
             return;
         }
 
@@ -57,7 +66,7 @@ export default () => {
 
         fetchFileContent()
             .then((content) => {
-                const targetFile = name ? `${hashToPath(hash)}/${name}`.replace(/\/+/g, '/') : hashToPath(hash);
+                const targetFile = name ? joinPaths(hashToPath(hash), name) : hashToPath(hash);
                 return http.post(`/api/client/stratus/templates/${id}/files/write`, content, {
                     params: { file: targetFile },
                     headers: { 'Content-Type': 'text/plain' }
@@ -91,14 +100,14 @@ export default () => {
     }
 
     return (
-        <div className={'relative'}>
+        <PageContentBlock>
             <FlashMessageRender byKey={'stratus:file-view'} css={tw`mb-4`} />
             
             <ErrorBoundary>
                 <div css={tw`flex flex-grow-0 items-center text-sm text-neutral-500 overflow-x-hidden mb-4 py-2`}>
                     /<span css={tw`px-1 text-neutral-300`}>home</span>/
                     <a
-                        href={`/stratus/templates/${id}/files#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`}
+                        href={`/stratus/templates/${id}#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`}
                         css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
                     >
                         template
@@ -107,7 +116,7 @@ export default () => {
                     {breadcrumbs().map((crumb, index) => (
                         <React.Fragment key={index}>
                             <a
-                                href={`/stratus/templates/${id}/files#${crumb.path}`}
+                                href={`/stratus/templates/${id}#${crumb.path}`}
                                 css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
                             >
                                 {crumb.name}
@@ -121,21 +130,40 @@ export default () => {
                 </div>
             </ErrorBoundary>
 
+            <Modal
+                visible={modalVisible}
+                onDismissed={() => setModalVisible(false)}
+            >
+                <Formik
+                    onSubmit={(values, { setSubmitting }) => {
+                        setModalVisible(false);
+                        save(values.fileName);
+                        setSubmitting(false);
+                    }}
+                    initialValues={{ fileName: '' }}
+                    validationSchema={object().shape({
+                        fileName: string().required().min(1),
+                    })}
+                >
+                    {({ resetForm }) => (
+                        <Form css={tw`m-0`}>
+                            <Field
+                                id={'fileName'}
+                                name={'fileName'}
+                                label={'File Name'}
+                                description={'Enter the name that this file should be saved as.'}
+                                autoFocus
+                            />
+                            <div css={tw`mt-6 text-right`}>
+                                <Button type={'submit'}>Create File</Button>
+                            </div>
+                        </Form>
+                    )}
+                </Formik>
+            </Modal>
+
             <div className={'relative'}>
                 <SpinnerOverlay visible={loading} />
-
-                {action === 'new' && (
-                    <div className={'mb-4'}>
-                        <label className={'block text-xs uppercase text-neutral-400 mb-1 font-header'}>File Name</label>
-                        <input
-                            type={'text'}
-                            value={filename}
-                            onChange={(e) => setFilename(e.target.value)}
-                            placeholder={'e.g. server.properties'}
-                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 font-sans text-sm'}
-                        />
-                    </div>
-                )}
 
                 <CodemirrorEditor
                     mode={mode}
@@ -147,11 +175,7 @@ export default () => {
                     }}
                     onContentSaved={() => {
                         if (action === 'new') {
-                            if (!filename) {
-                                addError({ message: 'Please provide a filename.', key: 'stratus:file-view' });
-                                return;
-                            }
-                            save(filename);
+                            setModalVisible(true);
                         } else {
                             save();
                         }
@@ -172,28 +196,22 @@ export default () => {
                 
                 <Button 
                     color={'grey'} 
-                    onClick={() => history.push(`/stratus/templates/${id}/files#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`)}
+                    onClick={() => history.push(`/stratus/templates/${id}#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`)}
                     css={tw`mr-2`}
                 >
                     Cancel
                 </Button>
                 
-                <Button 
-                    onClick={() => {
-                        if (action === 'new') {
-                            if (!filename) {
-                                addError({ message: 'Please provide a filename.', key: 'stratus:file-view' });
-                                return;
-                            }
-                            save(filename);
-                        } else {
-                            save();
-                        }
-                    }}
-                >
-                    {action === 'new' ? 'Create File' : 'Save Content'}
-                </Button>
+                {action === 'new' ? (
+                    <Button onClick={() => setModalVisible(true)}>
+                        Create File
+                    </Button>
+                ) : (
+                    <Button onClick={() => save()}>
+                        Save Content
+                    </Button>
+                )}
             </div>
-        </div>
+        </PageContentBlock>
     );
 };
