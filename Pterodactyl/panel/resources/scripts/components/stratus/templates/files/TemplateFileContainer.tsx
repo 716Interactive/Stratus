@@ -6,15 +6,25 @@ import PageContentBlock from '@/components/elements/PageContentBlock';
 import Spinner from '@/components/elements/Spinner';
 import tw from 'twin.macro';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFolder, faFileAlt, faLevelUpAlt, faTrashAlt, faUpload, faFolderPlus, faFileMedical } from '@fortawesome/free-solid-svg-icons';
+import { faFolder, faFileAlt, faFileArchive, faTrashAlt, faUpload, faFolderPlus, faFileMedical } from '@fortawesome/free-solid-svg-icons';
 import { bytesToString } from '@/lib/formatters';
-import { format } from 'date-fns';
+import { differenceInHours, format, formatDistanceToNow } from 'date-fns';
 import http from '@/api/http';
 import Modal from '@/components/elements/Modal';
 import Button from '@/components/elements/Button';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
+import ErrorBoundary from '@/components/elements/ErrorBoundary';
+import { FileObject } from '@/api/server/files/loadDirectory';
+import styles from '@/components/server/files/style.module.css';
 
 const joinPaths = (a: string, b: string) => (a === '/' ? '/' + b : a + '/' + b).replace(/\/+/g, '/');
+
+const sortFiles = (files: FileObject[]): FileObject[] => {
+    const sortedFiles: FileObject[] = files
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((a, b) => (a.isFile === b.isFile ? 0 : a.isFile ? 1 : -1));
+    return sortedFiles;
+};
 
 export default () => {
     const { id } = useParams<{ id: string }>();
@@ -89,7 +99,9 @@ export default () => {
         .then(() => setLoading(false));
     };
 
-    const handleDelete = (fileName: string) => {
+    const handleDelete = (fileName: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (!confirm(`Are you sure you want to delete ${fileName}?`)) return;
 
         setLoading(true);
@@ -104,11 +116,20 @@ export default () => {
         .then(() => setLoading(false));
     };
 
+    const breadcrumbs = (): { name: string; path?: string }[] =>
+        directory
+            .split('/')
+            .filter((dir) => !!dir)
+            .map((dir, index, dirs) => {
+                const path = `/${dirs.slice(0, index + 1).join('/')}`;
+                return { name: dir, path };
+            });
+
     if (error) return <PageContentBlock title={'Error'}><div>Failed to load template files.</div></PageContentBlock>;
 
     return (
         <PageContentBlock title={'Template File Manager'}>
-            <div className={'bg-neutral-900 rounded shadow-lg overflow-hidden relative'}>
+            <div className={'relative'}>
                 <SpinnerOverlay visible={loading} />
 
                 {/* Create Folder Modal */}
@@ -130,107 +151,158 @@ export default () => {
                     </form>
                 </Modal>
 
-                <div className={'p-4 bg-neutral-800 border-b border-neutral-700 flex flex-wrap gap-4 justify-between items-center'}>
-                    <div className={'flex items-center space-x-2'}>
-                        <h2 className={'text-lg font-header text-neutral-200'}>/ {directory.replace(/^\//, '')}</h2>
-                    </div>
+                <ErrorBoundary>
+                    <div className={'flex flex-wrap-reverse md:flex-nowrap mb-4 items-center justify-between'}>
+                        <div css={tw`flex flex-grow-0 items-center text-sm text-neutral-500 overflow-x-hidden py-2`}>
+                            <div css={tw`w-8`} />/<span css={tw`px-1 text-neutral-300`}>home</span>/
+                            <Link to={`/stratus/templates/${id}/files`} css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}>
+                                template
+                            </Link>
+                            /
+                            {breadcrumbs().map((crumb, index) =>
+                                crumb.path ? (
+                                    <React.Fragment key={index}>
+                                        <a
+                                            href={`#${crumb.path}`}
+                                            css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
+                                        >
+                                            {crumb.name}
+                                        </a>
+                                        /
+                                    </React.Fragment>
+                                ) : (
+                                    <span key={index} css={tw`px-1 text-neutral-300`}>
+                                        {crumb.name}
+                                    </span>
+                                )
+                            )}
+                        </div>
 
-                    <div className={'flex flex-wrap gap-2 items-center'}>
-                        {/* Hidden file input */}
-                        <input
-                            type={'file'}
-                            ref={fileInputRef}
-                            onChange={handleUploadChange}
-                            className={'hidden'}
-                        />
-                        
-                        <label className={'flex items-center space-x-2 text-xs text-neutral-400 bg-neutral-700/50 px-3 py-2 rounded border border-neutral-600 cursor-pointer hover:border-neutral-500 transition-colors mr-2'}>
+                        <div className={styles.manager_actions}>
+                            {/* Hidden file input */}
                             <input
-                                type={'checkbox'}
-                                checked={extractZip}
-                                onChange={(e) => setExtractZip(e.target.checked)}
-                                className={'rounded border-neutral-600 bg-neutral-800 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-neutral-900'}
+                                type={'file'}
+                                ref={fileInputRef}
+                                onChange={handleUploadChange}
+                                className={'hidden'}
                             />
-                            <span>Extract ZIPs</span>
-                        </label>
+                            
+                            <label className={'flex items-center space-x-2 text-xs text-neutral-400 bg-neutral-700/50 px-3 py-2 rounded border border-neutral-600 cursor-pointer hover:border-neutral-500 transition-colors justify-center md:mr-2'}>
+                                <input
+                                    type={'checkbox'}
+                                    checked={extractZip}
+                                    onChange={(e) => setExtractZip(e.target.checked)}
+                                    className={'rounded border-neutral-600 bg-neutral-800 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-neutral-900'}
+                                />
+                                <span>Extract ZIPs</span>
+                            </label>
 
-                        <Button size={'small'} color={'cyan'} onClick={handleUploadClick} className={'flex items-center space-x-2'}>
-                            <FontAwesomeIcon icon={faUpload} />
-                            <span>Upload File</span>
-                        </Button>
-
-                        <Button size={'small'} color={'grey'} onClick={() => setFolderModalVisible(true)} className={'flex items-center space-x-2'}>
-                            <FontAwesomeIcon icon={faFolderPlus} />
-                            <span>New Folder</span>
-                        </Button>
-
-                        <Link to={`/stratus/templates/${id}/files/new#${directory}`}>
-                            <Button size={'small'} className={'flex items-center space-x-2'}>
-                                <FontAwesomeIcon icon={faFileMedical} />
-                                <span>New File</span>
+                            <Button onClick={() => setFolderModalVisible(true)} className={'flex items-center space-x-2 justify-center'}>
+                                <FontAwesomeIcon icon={faFolderPlus} />
+                                <span>New Folder</span>
                             </Button>
-                        </Link>
+
+                            <Button onClick={handleUploadClick} className={'flex items-center space-x-2 justify-center'}>
+                                <FontAwesomeIcon icon={faUpload} />
+                                <span>Upload</span>
+                            </Button>
+
+                            <Link to={`/stratus/templates/${id}/files/new#${directory}`} css={tw`w-full`}>
+                                <Button css={tw`w-full flex items-center space-x-2 justify-center`}>
+                                    <FontAwesomeIcon icon={faFileMedical} />
+                                    <span>New File</span>
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
-                </div>
-                
+                </ErrorBoundary>
+
                 {!files ? (
-                    <div className={'p-20'}><Spinner centered /></div>
+                    <Spinner size={'large'} centered />
                 ) : (
-                    <div className={'flex flex-col'}>
+                    <div css={tw`flex flex-col`}>
                         {directory !== '/' && (
                             <a 
                                 href={`#${directory.split('/').slice(0, -1).join('/') || '/'}`}
-                                className={'flex items-center p-3 border-b border-neutral-800 hover:bg-neutral-800 transition-colors text-cyan-400 font-medium'}
+                                className={styles.file_row}
                             >
-                                <FontAwesomeIcon icon={faLevelUpAlt} className={'mr-3'} />
-                                <span>Go Back</span>
+                                <div className={styles.details}>
+                                    <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
+                                        <FontAwesomeIcon icon={faFolder} />
+                                    </div>
+                                    <span css={tw`text-cyan-400 font-medium`}>..</span>
+                                </div>
                             </a>
                         )}
                         {files.length === 0 && (
-                            <div className={'p-10 text-center text-neutral-500 italic'}>
-                                This directory is empty.
-                            </div>
+                            <p css={tw`text-sm text-neutral-400 text-center py-8`}>This directory seems to be empty.</p>
                         )}
-                        {files.map(file => (
-                            <div key={file.name} className={'flex items-center p-3 border-b border-neutral-800 hover:bg-neutral-800 transition-colors group'}>
-                                <div className={'w-10 text-center text-neutral-400'}>
-                                    <FontAwesomeIcon icon={file.isFile ? faFileAlt : faFolder} />
-                                </div>
-                                <div className={'flex-1 truncate'}>
-                                    {file.isFile ? (
-                                        file.isEditable() ? (
-                                            <Link 
-                                                to={`/stratus/templates/${id}/files/edit#${joinPaths(directory, file.name)}`}
-                                                className={'text-neutral-200 hover:text-cyan-400 transition-colors hover:underline'}
-                                            >
-                                                {file.name}
-                                            </Link>
-                                        ) : (
-                                            <span className={'text-neutral-400'}>{file.name}</span>
-                                        )
-                                    ) : (
-                                        <a href={`#${joinPaths(directory, file.name)}`} className={'text-cyan-400 hover:underline font-medium'}>
-                                            {file.name}
-                                        </a>
-                                    )}
-                                </div>
-                                <div className={'w-24 text-right text-xs text-neutral-500 mr-4'}>
-                                    {file.isFile ? bytesToString(file.size) : '--'}
-                                </div>
-                                <div className={'w-40 text-right text-xs text-neutral-500 hidden md:block mr-4'}>
-                                    {format(file.modifiedAt, 'MMM do, yyyy HH:mm')}
-                                </div>
-                                <div className={'w-12 text-center'}>
-                                    {file.name !== '.keep' && (
-                                        <button 
-                                            onClick={() => handleDelete(file.name)}
-                                            className={'text-neutral-500 hover:text-red-500 p-2 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100'}
-                                            title={'Delete'}
+                        {sortFiles(files).map(file => (
+                            <div
+                                key={file.name}
+                                className={styles.file_row}
+                            >
+                                {file.isFile ? (
+                                    file.isEditable() ? (
+                                        <Link 
+                                            to={`/stratus/templates/${id}/files/edit#${joinPaths(directory, file.name)}`}
+                                            className={styles.details}
                                         >
-                                            <FontAwesomeIcon icon={faTrashAlt} />
-                                        </button>
-                                    )}
-                                </div>
+                                            <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
+                                                <FontAwesomeIcon
+                                                    icon={file.name.endsWith('.zip') || file.name.endsWith('.tar.gz') ? faFileArchive : faFileAlt}
+                                                />
+                                            </div>
+                                            <div css={tw`flex-1 truncate`}>{file.name}</div>
+                                            <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>{bytesToString(file.size)}</div>
+                                            <div css={tw`w-1/5 text-right mr-4 hidden md:block`} title={file.modifiedAt.toString()}>
+                                                {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
+                                                    ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
+                                                    : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                                            </div>
+                                        </Link>
+                                    ) : (
+                                        <div className={styles.details}>
+                                            <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
+                                                <FontAwesomeIcon
+                                                    icon={file.name.endsWith('.zip') || file.name.endsWith('.tar.gz') ? faFileArchive : faFileAlt}
+                                                />
+                                            </div>
+                                            <div css={tw`flex-1 truncate text-neutral-500`}>{file.name}</div>
+                                            <div css={tw`w-1/6 text-right mr-4 hidden sm:block text-neutral-500`}>{bytesToString(file.size)}</div>
+                                            <div css={tw`w-1/5 text-right mr-4 hidden md:block text-neutral-500`} title={file.modifiedAt.toString()}>
+                                                {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
+                                                    ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
+                                                    : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                                            </div>
+                                        </div>
+                                    )
+                                ) : (
+                                    <a 
+                                        href={`#${joinPaths(directory, file.name)}`} 
+                                        className={styles.details}
+                                    >
+                                        <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
+                                            <FontAwesomeIcon icon={faFolder} />
+                                        </div>
+                                        <div css={tw`flex-1 truncate text-cyan-400 font-medium`}>{file.name}</div>
+                                        <div css={tw`w-1/6 text-right mr-4 hidden sm:block`}>--</div>
+                                        <div css={tw`w-1/5 text-right mr-4 hidden md:block`} title={file.modifiedAt.toString()}>
+                                            {Math.abs(differenceInHours(file.modifiedAt, new Date())) > 48
+                                                ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
+                                                : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                                        </div>
+                                    </a>
+                                )}
+                                {file.name !== '.keep' && (
+                                    <button 
+                                        onClick={(e) => handleDelete(file.name, e)}
+                                        css={tw`text-neutral-500 hover:text-red-500 p-2 mr-4 transition-colors focus:outline-none`}
+                                        title={'Delete'}
+                                    >
+                                        <FontAwesomeIcon icon={faTrashAlt} />
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

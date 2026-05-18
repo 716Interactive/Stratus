@@ -12,6 +12,8 @@ import { dirname } from 'pathe';
 import { ServerError } from '@/components/elements/ScreenBlock';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import useFlash from '@/plugins/useFlash';
+import tw from 'twin.macro';
+import ErrorBoundary from '@/components/elements/ErrorBoundary';
 
 export default () => {
     const { id, action } = useParams<{ id: string; action: 'new' | 'edit' }>();
@@ -73,26 +75,64 @@ export default () => {
             .then(() => setLoading(false));
     };
 
+    const breadcrumbs = (): { name: string; path?: string }[] => {
+        const path = action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash));
+        return path
+            .split('/')
+            .filter((dir) => !!dir)
+            .map((dir, index, dirs) => {
+                const p = `/${dirs.slice(0, index + 1).join('/')}`;
+                return { name: dir, path: p };
+            });
+    };
+
     if (error) {
         return <ServerError message={error} onBack={() => history.goBack()} />;
     }
 
     return (
         <PageContentBlock title={action === 'new' ? 'Create File' : 'Edit File'}>
-            <FlashMessageRender byKey={'stratus:file-view'} className={'mb-4'} />
+            <FlashMessageRender byKey={'stratus:file-view'} css={tw`mb-4`} />
             
-            <div className={'bg-neutral-900 rounded shadow-lg overflow-hidden relative p-4'}>
+            <ErrorBoundary>
+                <div css={tw`flex flex-grow-0 items-center text-sm text-neutral-500 overflow-x-hidden mb-4 py-2`}>
+                    /<span css={tw`px-1 text-neutral-300`}>home</span>/
+                    <a
+                        href={`/stratus/templates/${id}/files#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`}
+                        css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
+                    >
+                        template
+                    </a>
+                    /
+                    {breadcrumbs().map((crumb, index) => (
+                        <React.Fragment key={index}>
+                            <a
+                                href={`/stratus/templates/${id}/files#${crumb.path}`}
+                                css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
+                            >
+                                {crumb.name}
+                            </a>
+                            /
+                        </React.Fragment>
+                    ))}
+                    {action !== 'new' && (
+                        <span css={tw`px-1 text-neutral-300`}>{filename}</span>
+                    )}
+                </div>
+            </ErrorBoundary>
+
+            <div className={'relative'}>
                 <SpinnerOverlay visible={loading} />
 
                 {action === 'new' && (
                     <div className={'mb-4'}>
-                        <label className={'block text-xs uppercase text-neutral-400 mb-1'}>File Name</label>
+                        <label className={'block text-xs uppercase text-neutral-400 mb-1 font-header'}>File Name</label>
                         <input
                             type={'text'}
                             value={filename}
                             onChange={(e) => setFilename(e.target.value)}
                             placeholder={'e.g. server.properties'}
-                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500'}
+                            className={'bg-neutral-800 text-neutral-200 px-3 py-2 rounded w-full border border-neutral-700 focus:outline-none focus:border-cyan-500 font-sans text-sm'}
                         />
                     </div>
                 )}
@@ -117,42 +157,42 @@ export default () => {
                         }
                     }}
                 />
+            </div>
 
-                <div className={'flex justify-between items-center mt-4'}>
-                    <div className={'w-48 bg-neutral-800 rounded'}>
-                        <Select value={mode} onChange={(e) => setMode(e.currentTarget.value)}>
-                            {modes.map((m) => (
-                                <option key={`${m.name}_${m.mime}`} value={m.mime}>
-                                    {m.name}
-                                </option>
-                            ))}
-                        </Select>
-                    </div>
-
-                    <div className={'flex space-x-2'}>
-                        <Button 
-                            color={'grey'} 
-                            onClick={() => history.push(`/stratus/templates/${id}/files#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            onClick={() => {
-                                if (action === 'new') {
-                                    if (!filename) {
-                                        addError({ message: 'Please provide a filename.', key: 'stratus:file-view' });
-                                        return;
-                                    }
-                                    save(filename);
-                                } else {
-                                    save();
-                                }
-                            }}
-                        >
-                            {action === 'new' ? 'Create File' : 'Save File'}
-                        </Button>
-                    </div>
+            <div css={tw`flex justify-end mt-4`}>
+                <div css={tw`flex-1 sm:flex-none rounded bg-neutral-900 mr-4 w-48`}>
+                    <Select value={mode} onChange={(e) => setMode(e.currentTarget.value)}>
+                        {modes.map((m) => (
+                            <option key={`${m.name}_${m.mime}`} value={m.mime}>
+                                {m.name}
+                            </option>
+                        ))}
+                    </Select>
                 </div>
+                
+                <Button 
+                    color={'grey'} 
+                    onClick={() => history.push(`/stratus/templates/${id}/files#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`)}
+                    css={tw`mr-2`}
+                >
+                    Cancel
+                </Button>
+                
+                <Button 
+                    onClick={() => {
+                        if (action === 'new') {
+                            if (!filename) {
+                                addError({ message: 'Please provide a filename.', key: 'stratus:file-view' });
+                                return;
+                            }
+                            save(filename);
+                        } else {
+                            save();
+                        }
+                    }}
+                >
+                    {action === 'new' ? 'Create File' : 'Save Content'}
+                </Button>
             </div>
         </PageContentBlock>
     );
