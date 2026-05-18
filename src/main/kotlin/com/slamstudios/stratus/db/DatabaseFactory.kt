@@ -7,6 +7,8 @@ import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -37,12 +39,12 @@ object DatabaseFactory {
 
         // ── Migrate existing templates path in database & filesystem ──────────
         transaction {
-            org.jetbrains.exposed.sql.update(Templates) {
+            Templates.update {
                 it[localPath] = "/var/lib/pterodactyl/volumes"
             }
             
             // Check filesystem and migrate physically
-            org.jetbrains.exposed.sql.selectAll(Templates).forEach { row ->
+            Templates.selectAll().forEach { row ->
                 val templateId = row[Templates.id]
                 val oldDir = java.io.File("/var/lib/pterodactyl/templates/$templateId")
                 val newDir = java.io.File("/var/lib/pterodactyl/volumes/$templateId")
