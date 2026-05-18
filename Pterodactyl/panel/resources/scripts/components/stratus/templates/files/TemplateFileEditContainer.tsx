@@ -91,7 +91,7 @@ export default () => {
     }
 
     return (
-        <PageContentBlock title={action === 'new' ? 'Create File' : 'Edit File'}>
+        <div className={'relative'}>
             <FlashMessageRender byKey={'stratus:file-view'} css={tw`mb-4`} />
             
             <ErrorBoundary>
@@ -194,6 +194,6 @@ export default () => {
                     {action === 'new' ? 'Create File' : 'Save Content'}
                 </Button>
             </div>
-        </PageContentBlock>
+        </div>
     );
 };
