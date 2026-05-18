@@ -22,7 +22,10 @@ redis:
 # Pterodactyl Panel integration
 pterodactyl:
   baseUrl: "https://panel.example.com"
+  # Application API Key (starts with ptla_)
   apiKey: "changeme"
+  # Client API Key (starts with ptlc_) — Required for server power control
+  clientApiKey: ""
   ownerId: 1
   # The public URL where this orchestrator is accessible
   orchestratorUrl: "http://localhost:8081"
