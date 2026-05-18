@@ -100,9 +100,11 @@ object ServerService {
             if (s.autoProxyAdd) {
                 RedisService.publish("stratus:server:ready", "{\"serverId\":\"$id\", \"groupId\":\"${s.groupId}\", \"host\":\"${s.host}\", \"port\":${s.port}}")
             }
-        } else if (newState == ServerState.TERMINATED) {
+        }
+        if (newState == ServerState.TERMINATED) {
             val s = current.toManagedServer()
             RedisService.publish("stratus:server:removed", "{\"serverId\":\"$id\", \"groupId\":\"${s.groupId}\"}")
+            Servers.deleteWhere { Servers.id eq id }
         }
     }
 
