@@ -8,6 +8,8 @@ import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.slf4j.LoggerFactory
 
 object DatabaseFactory {
@@ -32,6 +34,12 @@ object DatabaseFactory {
         // ── Connect Exposed ───────────────────────────────────────────────────
         Database.connect(dataSource)
         log.info("Database connected: ${config.url}")
+
+        // ── Prune stale terminated servers on startup ─────────────────────────
+        transaction {
+            Servers.deleteWhere { Servers.state eq ServerState.TERMINATED.name }
+        }
+        log.info("Pruned all stale terminated servers from database on startup.")
     }
 
     private fun buildDataSource(config: DatabaseConfig): HikariDataSource {

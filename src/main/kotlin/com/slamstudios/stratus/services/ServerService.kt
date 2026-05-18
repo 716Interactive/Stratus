@@ -36,7 +36,11 @@ object ServerService {
     fun getAll(groupId: String? = null, state: ServerState? = null): List<ManagedServer> = transaction {
         var query = Servers.selectAll()
         if (groupId != null) query = query.where { Servers.groupId eq groupId }
-        if (state != null) query = query.where { Servers.state eq state.name }
+        if (state != null) {
+            query = query.where { Servers.state eq state.name }
+        } else {
+            query = query.where { Servers.state neq ServerState.TERMINATED.name }
+        }
         query.map { it.toManagedServer() }
     }
 
