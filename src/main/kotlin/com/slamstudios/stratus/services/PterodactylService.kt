@@ -59,6 +59,7 @@ data class PteroAllocationAttributes(
 object PterodactylService {
     private val logger = LoggerFactory.getLogger(PterodactylService::class.java)
     private lateinit var client: HttpClient
+    private lateinit var clientApiClient: HttpClient
     private lateinit var baseUrl: String
     private lateinit var apiKey: String
     private var clientApiKey: String? = null
@@ -84,7 +85,26 @@ object PterodactylService {
                 contentType(ContentType.Application.Json)
             }
         }
-        logger.info("PterodactylService initialised at $baseUrl")
+
+        val clientToken = if (!clientApiKey.isNullOrBlank()) clientApiKey else apiKey
+        clientApiClient = HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                })
+            }
+            install(Logging) {
+                level = LogLevel.INFO
+            }
+            defaultRequest {
+                url(baseUrl)
+                header("Authorization", "Bearer $clientToken")
+                header("Accept", "application/json")
+                contentType(ContentType.Application.Json)
+            }
+        }
+
+        logger.info("PterodactylService initialised at $baseUrl (Client API token length: ${clientToken.length})")
     }
 
     suspend fun deleteServer(pteroId: Int) {
@@ -178,11 +198,7 @@ object PterodactylService {
 
     suspend fun sendPowerSignal(serverIdentifier: String, signal: String) {
         try {
-            val token = clientApiKey ?: apiKey
-            val response = client.post("/api/client/servers/$serverIdentifier/power") {
-                headers {
-                    set("Authorization", "Bearer $token")
-                }
+            val response = clientApiClient.post("/api/client/servers/$serverIdentifier/power") {
                 setBody(mapOf("signal" to signal))
             }
             if (response.status.value !in 200..299) {

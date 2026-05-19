@@ -80,18 +80,23 @@ export default () => {
                 setDisk(config.disk ?? 5120);
                 setCpu(config.cpu ?? 100);
                 setStartup(config.startup ?? '');
-                setImage(config.image ?? '');
                 if (config.env) {
                     setEnvRows(Object.entries(config.env).map(([key, value]) => ({ key, value })));
                 }
 
-                // Auto-detect if image is custom
+                // Auto-detect if image is custom or needs initialization
                 const selectedEgg = eggs?.find(e => e.id === latest.eggId);
                 const eggImages = getEggImages(selectedEgg);
-                const hasImage = eggImages.some(item => item.image === config.image);
-                if (!hasImage && config.image) {
+                let currentImg = config.image ?? '';
+                
+                const hasImage = eggImages.some(item => item.image === currentImg);
+                if (currentImg && !hasImage) {
                     setUseCustomImage(true);
+                } else if (!currentImg && eggImages.length > 0) {
+                    currentImg = eggImages[0].image;
                 }
+                
+                setImage(currentImg);
             } catch (e) {
                 console.error('Failed to parse template version config JSON', e);
             }

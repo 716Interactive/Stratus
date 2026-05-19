@@ -52,12 +52,13 @@ fun Route.templateRoutes() {
                 TemplateService.updateTemplateName(id, req.name)
             }
             
+            val jsonParser = Json { ignoreUnknownKeys = true; coerceInputValues = true }
             val latestVersion = TemplateService.getVersions(id).firstOrNull()
             val currentEggId = req.eggId ?: latestVersion?.eggId ?: 1
             
             val currentConfig = latestVersion?.configJson?.let {
                 try {
-                    Json.decodeFromString<com.slamstudios.stratus.services.PteroTemplateConfig>(it)
+                    jsonParser.decodeFromString<com.slamstudios.stratus.services.PteroTemplateConfig>(it)
                 } catch (e: Exception) {
                     com.slamstudios.stratus.services.PteroTemplateConfig()
                 }
@@ -72,7 +73,7 @@ fun Route.templateRoutes() {
                 env = req.environment ?: currentConfig.env
             )
             
-            val newConfigJson = Json.encodeToString(com.slamstudios.stratus.services.PteroTemplateConfig.serializer(), newConfig)
+            val newConfigJson = jsonParser.encodeToString(com.slamstudios.stratus.services.PteroTemplateConfig.serializer(), newConfig)
             TemplateService.createVersion(id, currentEggId, newConfigJson)
             
             call.respond(mapOf("ok" to true))
