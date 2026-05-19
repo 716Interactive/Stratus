@@ -104,7 +104,7 @@ object PterodactylService {
             }
         }
 
-        logger.info("PterodactylService initialised at $baseUrl (Client API token length: ${clientToken.length})")
+        logger.info("PterodactylService initialised at $baseUrl (Client API token length: ${clientToken?.length ?: 0})")
     }
 
     suspend fun deleteServer(pteroId: Int) {
