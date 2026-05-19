@@ -53,7 +53,7 @@ class TemplateFileController extends ClientApiController
         $file = $request->query('file');
         $content = $request->getContent();
         
-        $this->api->post("/templates/{$templateId}/files/write?file=" . urlencode($file), [], $content);
+        $this->api->postRaw("/templates/{$templateId}/files/write?file=" . urlencode($file), $content);
         
         return response()->noContent();
     }

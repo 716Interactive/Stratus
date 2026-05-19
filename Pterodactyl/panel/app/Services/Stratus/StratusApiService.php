@@ -109,6 +109,22 @@ class StratusApiService
         }
     }
 
+    public function postRaw(string $endpoint, string $body)
+    {
+        try {
+            $response = $this->client->post($endpoint, [
+                'headers' => [
+                    'Content-Type' => 'text/plain',
+                ],
+                'body' => $body,
+            ]);
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            Log::error('Stratus API Error (POST RAW ' . $endpoint . '): ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function put(string $endpoint, array $data = [])
     {
         try {

@@ -363,6 +363,10 @@ object OrchestratorService {
                 
                 logger.info("Starting server ${pteroServer.name} (Identifier: ${pteroServer.identifier}) via Pterodactyl API...")
                 PterodactylService.sendPowerSignal(pteroServer.identifier, "start")
+                
+                // Transition server state from STARTING → READY
+                ServerService.updateState(internalId, ServerState.READY)
+                logger.info("Server ${pteroServer.name} provisioned successfully and marked as READY.")
             }
         } else {
             logger.error("Failed to provision Pterodactyl server for group ${group.name}")
