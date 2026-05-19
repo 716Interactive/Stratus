@@ -143,16 +143,25 @@ object PterodactylService {
 
             val daemonToken = "$tokenId.$token"
 
-            // 2. Call the Panel's remote install endpoint (same endpoint Wings uses)
-            val installResponse = client.post("/api/remote/servers/$serverUuid/install") {
-                headers {
-                    set("Authorization", "Bearer $daemonToken")
+            // 2. Use a separate HttpClient WITHOUT default auth headers
+            //    The main client has defaultRequest { header("Authorization", "Bearer $apiKey") }
+            //    which overrides our daemon token. A fresh client avoids this conflict.
+            val remoteClient = HttpClient(CIO) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
                 }
+            }
+
+            val installResponse = remoteClient.post("$baseUrl/api/remote/servers/$serverUuid/install") {
+                header("Authorization", "Bearer $daemonToken")
+                header("Accept", "application/json")
+                contentType(ContentType.Application.Json)
                 setBody(buildJsonObject {
                     put("successful", true)
                     put("reinstall", false)
                 })
             }
+            remoteClient.close()
 
             if (installResponse.status.value in 200..299) {
                 logger.info("Successfully force-marked server $serverUuid as installed via daemon token")
