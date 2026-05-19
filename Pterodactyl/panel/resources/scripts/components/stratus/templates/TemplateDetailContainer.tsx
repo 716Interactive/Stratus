@@ -28,6 +28,16 @@ interface PteroTemplateConfig {
     env: Record<string, string>;
 }
 
+const getEggImages = (egg: any) => {
+    if (!egg || !egg.docker_images) return [];
+    return Object.entries(egg.docker_images).map(([key, value]) => {
+        const isImage = (str: string) => str.includes('/') || str.includes(':') || !str.includes(' ');
+        const image = isImage(key) ? key : (value as string);
+        const label = isImage(key) ? (value as string) : key;
+        return { image, label };
+    });
+};
+
 export default () => {
     const username = useStoreState((state) => state.user.data?.username || 'user');
     const { id } = useParams<{ id: string }>();
@@ -77,7 +87,8 @@ export default () => {
 
                 // Auto-detect if image is custom
                 const selectedEgg = eggs?.find(e => e.id === latest.eggId);
-                const hasImage = selectedEgg && Object.keys(selectedEgg.docker_images || {}).includes(config.image ?? '');
+                const eggImages = getEggImages(selectedEgg);
+                const hasImage = eggImages.some(item => item.image === config.image);
                 if (!hasImage && config.image) {
                     setUseCustomImage(true);
                 }
@@ -292,8 +303,9 @@ export default () => {
                                                  setEggId(val);
                                                  const newEgg = eggs?.find(eg => eg.id === val);
                                                  let newImg = image;
-                                                 if (newEgg && Object.keys(newEgg.docker_images || {}).length > 0) {
-                                                     newImg = Object.keys(newEgg.docker_images)[0];
+                                                 const eggImages = getEggImages(newEgg);
+                                                 if (eggImages.length > 0) {
+                                                     newImg = eggImages[0].image;
                                                      setImage(newImg);
                                                  }
                                                  autosaveSettings({ eggId: val, image: newImg });
@@ -362,8 +374,9 @@ export default () => {
                                                         setUseCustomImage(checked);
                                                         if (!checked) {
                                                             const selectedEgg = eggs?.find(eg => eg.id === eggId);
-                                                            if (selectedEgg && Object.keys(selectedEgg.docker_images || {}).length > 0) {
-                                                                const firstImg = Object.keys(selectedEgg.docker_images)[0];
+                                                            const eggImages = getEggImages(selectedEgg);
+                                                            if (eggImages.length > 0) {
+                                                                const firstImg = eggImages[0].image;
                                                                 setImage(firstImg);
                                                                 autosaveSettings({ image: firstImg });
                                                             }
@@ -375,7 +388,7 @@ export default () => {
                                             </Label>
                                         </div>
 
-                                        {useCustomImage || !eggs?.find(eg => eg.id === eggId)?.docker_images || Object.keys(eggs.find(eg => eg.id === eggId)?.docker_images || {}).length === 0 ? (
+                                        {useCustomImage || getEggImages(eggs?.find(eg => eg.id === eggId)).length === 0 ? (
                                             <Input
                                                 type={'text'}
                                                 value={image}
@@ -393,7 +406,7 @@ export default () => {
                                                 }}
                                                 required
                                             >
-                                                {Object.entries(eggs.find(eg => eg.id === eggId)?.docker_images || {}).map(([img, label]) => (
+                                                {getEggImages(eggs?.find(eg => eg.id === eggId)).map(({ image: img, label }) => (
                                                     <option key={img} value={img} className={'bg-neutral-800 text-neutral-200'}>{label} ({img})</option>
                                                 ))}
                                             </Select>
