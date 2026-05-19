@@ -117,6 +117,56 @@ object PterodactylService {
         }
     }
 
+    /**
+     * Force-mark a server as installed by calling the Panel's remote install endpoint
+     * using the node's daemon token. This mimics the callback that Wings normally sends
+     * after completing installation.
+     */
+    suspend fun forceMarkInstalled(serverUuid: String, nodeId: Int): Boolean {
+        return try {
+            // 1. Get the node's daemon token from the Application API
+            val configResponse = client.get("/api/application/nodes/$nodeId/configuration")
+            if (configResponse.status != HttpStatusCode.OK) {
+                logger.error("Failed to fetch node $nodeId configuration: ${configResponse.status}")
+                return false
+            }
+
+            val configText = configResponse.bodyAsText()
+            val configJson = Json.parseToJsonElement(configText).jsonObject
+            val tokenId = configJson["token_id"]?.jsonPrimitive?.content
+            val token = configJson["token"]?.jsonPrimitive?.content
+
+            if (tokenId == null || token == null) {
+                logger.error("Node $nodeId configuration missing token_id or token")
+                return false
+            }
+
+            val daemonToken = "$tokenId.$token"
+
+            // 2. Call the Panel's remote install endpoint (same endpoint Wings uses)
+            val installResponse = client.post("/api/remote/servers/$serverUuid/install") {
+                headers {
+                    set("Authorization", "Bearer $daemonToken")
+                }
+                setBody(buildJsonObject {
+                    put("successful", true)
+                    put("reinstall", false)
+                })
+            }
+
+            if (installResponse.status.value in 200..299) {
+                logger.info("Successfully force-marked server $serverUuid as installed via daemon token")
+                true
+            } else {
+                logger.error("Failed to force-mark server $serverUuid as installed: ${installResponse.status} - ${installResponse.bodyAsText()}")
+                false
+            }
+        } catch (e: Exception) {
+            logger.error("Exception while force-marking server $serverUuid as installed", e)
+            false
+        }
+    }
+
     suspend fun sendPowerSignal(serverIdentifier: String, signal: String) {
         try {
             val token = clientApiKey ?: apiKey
