@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useLocation, useParams, Link } from 'react-router-dom';
+import { useLocation, useParams, Link, NavLink } from 'react-router-dom';
 import useSWR from 'swr';
 import getTemplateFiles from '@/api/stratus/templates/getTemplateFiles';
 import Spinner from '@/components/elements/Spinner';
@@ -473,12 +473,12 @@ export default () => {
                         {breadcrumbs().map((crumb, index) =>
                             crumb.path ? (
                                 <React.Fragment key={index}>
-                                    <a
-                                        href={`#${crumb.path}`}
+                                    <NavLink
+                                        to={`/stratus/templates/${id}#${crumb.path}`}
                                         css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
                                     >
                                         {crumb.name}
-                                    </a>
+                                    </NavLink>
                                     /
                                 </React.Fragment>
                             ) : (
@@ -587,8 +587,8 @@ export default () => {
                                             </div>
                                         )
                                     ) : (
-                                        <a 
-                                            href={`#${joinPaths(directory, file.name)}`} 
+                                        <NavLink 
+                                            to={`/stratus/templates/${id}#${joinPaths(directory, file.name)}`} 
                                             className={styles.details}
                                         >
                                             <div css={tw`flex-none text-neutral-400 ml-6 mr-4 text-lg pl-3`}>
@@ -601,7 +601,7 @@ export default () => {
                                                     ? format(file.modifiedAt, 'MMM do, yyyy h:mma')
                                                     : formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
                                             </div>
-                                        </a>
+                                        </NavLink>
                                     )}
                                     <div css={tw`flex items-center z-30`}>
                                         <DropdownMenu

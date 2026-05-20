@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useHistory, useLocation, useParams } from 'react-router-dom';
+import { useHistory, useLocation, useParams, NavLink } from 'react-router-dom';
 import PageContentBlock from '@/components/elements/PageContentBlock';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import CodemirrorEditor from '@/components/elements/CodemirrorEditor';
@@ -8,7 +8,7 @@ import Button from '@/components/elements/Button';
 import modes from '@/modes';
 import http from '@/api/http';
 import { encodePathSegments, hashToPath } from '@/helpers';
-import { dirname } from 'pathe';
+import { dirname, join } from 'pathe';
 import { ServerError } from '@/components/elements/ScreenBlock';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import useFlash from '@/plugins/useFlash';
@@ -108,29 +108,31 @@ export default () => {
             <FlashMessageRender byKey={'stratus:file-view'} css={tw`mb-4`} />
             
             <ErrorBoundary>
-                <div css={tw`flex flex-grow-0 items-center text-sm text-neutral-500 overflow-x-hidden mb-4 py-2`}>
-                    /<span css={tw`px-1 text-neutral-300`}>home</span>/
-                    <a
-                        href={`/stratus/templates/${id}#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`}
-                        css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
-                    >
-                        template
-                    </a>
-                    /
-                    {breadcrumbs().map((crumb, index) => (
-                        <React.Fragment key={index}>
-                            <a
-                                href={`/stratus/templates/${id}#${crumb.path}`}
-                                css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
-                            >
-                                {crumb.name}
-                            </a>
-                            /
-                        </React.Fragment>
-                    ))}
-                    {action !== 'new' && (
-                        <span css={tw`px-1 text-neutral-300`}>{filename}</span>
-                    )}
+                <div css={tw`mb-4`}>
+                    <div css={tw`flex flex-grow-0 items-center text-sm text-neutral-500 overflow-x-hidden py-2`}>
+                        <div css={tw`w-12`} />/<span css={tw`px-1 text-neutral-300`}>home</span>/
+                        <NavLink
+                            to={`/stratus/templates/${id}#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`}
+                            css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
+                        >
+                            template
+                        </NavLink>
+                        /
+                        {breadcrumbs().map((crumb, index) => (
+                            <React.Fragment key={index}>
+                                <NavLink
+                                    to={`/stratus/templates/${id}#${crumb.path}`}
+                                    css={tw`px-1 text-neutral-200 no-underline hover:text-neutral-100`}
+                                >
+                                    {crumb.name}
+                                </NavLink>
+                                /
+                            </React.Fragment>
+                        ))}
+                        {action !== 'new' && (
+                            <span css={tw`px-1 text-neutral-300`}>{filename}</span>
+                        )}
+                    </div>
                 </div>
             </ErrorBoundary>
 
@@ -198,21 +200,13 @@ export default () => {
                     </Select>
                 </div>
                 
-                <Button 
-                    color={'grey'} 
-                    onClick={() => history.push(`/stratus/templates/${id}#${action === 'new' ? hashToPath(hash) : dirname(hashToPath(hash))}`)}
-                    css={tw`mr-2`}
-                >
-                    Cancel
-                </Button>
-                
-                {action === 'new' ? (
-                    <Button onClick={() => setModalVisible(true)}>
-                        Create File
+                {action === 'edit' ? (
+                    <Button css={tw`flex-1 sm:flex-none`} onClick={() => save()}>
+                        Save Content
                     </Button>
                 ) : (
-                    <Button onClick={() => save()}>
-                        Save Content
+                    <Button css={tw`flex-1 sm:flex-none`} onClick={() => setModalVisible(true)}>
+                        Create File
                     </Button>
                 )}
             </div>
