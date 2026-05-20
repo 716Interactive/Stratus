@@ -332,7 +332,7 @@ object OrchestratorService {
                 delay(2000)
                 
                 // Clone the template files into the server volume
-                val templateDir = File(template.localPath, template.id)
+                val templateDir = File("/var/lib/pterodactyl/templates/${template.id}/${version.id}")
                 val volumeDir = File("/var/lib/pterodactyl/volumes/${pteroServer.uuid}")
                 
                 try {

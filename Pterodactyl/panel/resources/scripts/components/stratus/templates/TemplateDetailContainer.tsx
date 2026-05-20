@@ -89,10 +89,26 @@ export default () => {
                 const eggImages = getEggImages(selectedEgg);
                 let currentImg = config.image ?? '';
                 
+                // Auto-resolve friendly display labels or sanitized values (e.g. "Java 8", "java-8") to exact image URLs
+                const sanitizeLabel = (lbl: string) => lbl.toLowerCase().replace(/\s+/g, '-');
+                const matchingImage = eggImages.find(item => 
+                    item.label.toLowerCase() === currentImg.toLowerCase() ||
+                    sanitizeLabel(item.label) === currentImg.toLowerCase() ||
+                    item.image.toLowerCase() === currentImg.toLowerCase()
+                );
+                
+                if (matchingImage) {
+                    currentImg = matchingImage.image;
+                }
+                
                 const hasImage = eggImages.some(item => item.image === currentImg);
                 if (currentImg && !hasImage) {
                     setUseCustomImage(true);
-                } else if (!currentImg && eggImages.length > 0) {
+                } else {
+                    setUseCustomImage(false);
+                }
+                
+                if (!currentImg && eggImages.length > 0) {
                     currentImg = eggImages[0].image;
                 }
                 

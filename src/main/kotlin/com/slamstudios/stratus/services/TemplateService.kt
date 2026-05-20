@@ -50,20 +50,23 @@ object TemplateService {
         Templates.insert {
             it[Templates.id] = id
             it[Templates.name] = name
-            it[Templates.localPath] = "/var/lib/pterodactyl/volumes"
+            it[Templates.localPath] = "/var/lib/pterodactyl/templates"
             it[Templates.ownerId] = ownerId
         }
-        Template(id, name, null, "/var/lib/pterodactyl/volumes", ownerId)
+        Template(id, name, null, "/var/lib/pterodactyl/templates", ownerId)
     }
 
     fun createVersion(templateId: String, eggId: Int, configJson: String): TemplateVersion = transaction {
-        val lastVersion = TemplateVersions.selectAll().where { TemplateVersions.templateId eq templateId }
+        val lastVersionRow = TemplateVersions.selectAll().where { TemplateVersions.templateId eq templateId }
             .orderBy(TemplateVersions.versionNumber, SortOrder.DESC)
             .limit(1)
-            .singleOrNull()?.get(TemplateVersions.versionNumber) ?: 0
+            .singleOrNull()
+        
+        val lastVersionNumber = lastVersionRow?.get(TemplateVersions.versionNumber) ?: 0
+        val lastVersionId = lastVersionRow?.get(TemplateVersions.id)
         
         val id = UUID.randomUUID().toString()
-        val nextVersion = lastVersion + 1
+        val nextVersion = lastVersionNumber + 1
         
         TemplateVersions.insert {
             it[TemplateVersions.id] = id
@@ -77,6 +80,17 @@ object TemplateService {
         // Update current version pointer
         Templates.update({ Templates.id eq templateId }) {
             it[currentVersionId] = id
+        }
+
+        // Copy files from the previous version to the new version folder
+        val newVersionPath = File("/var/lib/pterodactyl/templates/$templateId/$id")
+        newVersionPath.mkdirs()
+        
+        if (lastVersionId != null) {
+            val oldVersionPath = File("/var/lib/pterodactyl/templates/$templateId/$lastVersionId")
+            if (oldVersionPath.exists()) {
+                oldVersionPath.copyRecursively(newVersionPath, overwrite = true)
+            }
         }
         
         TemplateVersion(id, templateId, nextVersion, eggId, configJson, LocalDateTime.now().toString())
